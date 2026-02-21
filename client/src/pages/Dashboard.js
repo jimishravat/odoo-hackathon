@@ -258,38 +258,46 @@ const generateFleetManagerActivities = () => {
   // Recent completed trips
   mockTrips
     .filter(t => t.status === 'completed')
-    .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))
+    .sort((a, b) => new Date(b.endTime || 0) - new Date(a.endTime || 0))
     .slice(0, 3)
     .forEach(trip => {
       const driver = mockDrivers.find(d => d.id === trip.driver);
       const vehicle = mockVehicles.find(v => v.id === trip.vehicle);
-      activities.push({
-        id: `trip-${trip.id}`,
-        icon: RouteIcon,
-        title: `Trip ${trip.tripNumber} Completed`,
-        description: `${vehicle?.name} - ${trip.startLocation} to ${trip.endLocation}`,
-        timestamp: new Date(trip.endTime).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-        severity: 'success',
-      });
+      if (vehicle && driver) {
+        activities.push({
+          id: `trip-${trip.id}`,
+          icon: RouteIcon,
+          title: `Trip ${trip.tripNumber} Completed`,
+          description: `${vehicle.name || 'Unknown Vehicle'} - ${trip.startLocation || 'N/A'} to ${trip.endLocation || 'N/A'}`,
+          timestamp: trip.endTime ? new Date(trip.endTime).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A',
+          severity: 'success',
+        });
+      }
     });
 
   // Recent maintenance
   mockMaintenance
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .sort((a, b) => {
+      const dateA = new Date(a.completedDate || a.scheduledDate || 0);
+      const dateB = new Date(b.completedDate || b.scheduledDate || 0);
+      return dateB - dateA;
+    })
     .slice(0, 2)
     .forEach(maintenance => {
-      const vehicle = mockVehicles.find(v => v.id === maintenance.vehicleId);
-      activities.push({
-        id: `maintenance-${maintenance.id}`,
-        icon: WarningIcon,
-        title: `Maintenance: ${maintenance.type}`,
-        description: `${vehicle?.name} - ${maintenance.description}`,
-        timestamp: new Date(maintenance.date).toLocaleString('en-IN', { month: 'short', day: 'numeric' }),
-        severity: 'warning',
-      });
+      const vehicle = mockVehicles.find(v => v.id === maintenance.vehicle);
+      if (vehicle) {
+        activities.push({
+          id: `maintenance-${maintenance.id}`,
+          icon: WarningIcon,
+          title: `Maintenance: ${maintenance.maintenanceType || 'Service'}`,
+          description: `${vehicle.name || 'Unknown Vehicle'} - ${maintenance.description || 'N/A'}`,
+          timestamp: maintenance.completedDate ? new Date(maintenance.completedDate).toLocaleString('en-IN', { month: 'short', day: 'numeric' }) : 'Pending',
+          severity: 'warning',
+        });
+      }
     });
 
-  return activities.sort((a, b) => mockTrips.find(t => t.id === parseInt(a.id.split('-')[1]))?.endTime || 0 >= mockTrips.find(t => t.id === parseInt(b.id.split('-')[1]))?.endTime || 0 ? -1 : 1).slice(0, 5);
+  return activities.slice(0, 5);
 };
 
 /**
@@ -305,31 +313,35 @@ const generateDispatcherActivities = () => {
     .forEach(trip => {
       const driver = mockDrivers.find(d => d.id === trip.driver);
       const vehicle = mockVehicles.find(v => v.id === trip.vehicle);
-      activities.push({
-        id: `active-trip-${trip.id}`,
-        icon: AccessTimeIcon,
-        title: `🚚 ${driver?.name} - In Transit`,
-        description: `${vehicle?.name} | ${trip.startLocation} → ${trip.endLocation}`,
-        timestamp: `Distance: ${trip.distance} km`,
-        severity: 'info',
-      });
+      if (vehicle && driver) {
+        activities.push({
+          id: `active-trip-${trip.id}`,
+          icon: AccessTimeIcon,
+          title: `🚚 ${driver.name || 'Unknown Driver'} - In Transit`,
+          description: `${vehicle.name || 'Unknown Vehicle'} | ${trip.startLocation || 'N/A'} → ${trip.endLocation || 'N/A'}`,
+          timestamp: `Distance: ${trip.distance || 0} km`,
+          severity: 'info',
+        });
+      }
     });
 
   // Recent trip completions
   mockTrips
     .filter(t => t.status === 'completed')
-    .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))
+    .sort((a, b) => new Date(b.endTime || 0) - new Date(a.endTime || 0))
     .slice(0, 3)
     .forEach(trip => {
       const driver = mockDrivers.find(d => d.id === trip.driver);
-      activities.push({
-        id: `completed-trip-${trip.id}`,
-        icon: CheckCircleIcon,
-        title: `✓ ${driver?.name} - Trip Complete`,
-        description: `Distance: ${trip.distance} km | Rating: ${trip.rating || 'N/A'}`,
-        timestamp: new Date(trip.endTime).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-        severity: 'success',
-      });
+      if (driver) {
+        activities.push({
+          id: `completed-trip-${trip.id}`,
+          icon: CheckCircleIcon,
+          title: `✓ ${driver.name || 'Unknown Driver'} - Trip Complete`,
+          description: `Distance: ${trip.distance || 0} km | Rating: ${trip.rating || 'N/A'}`,
+          timestamp: trip.endTime ? new Date(trip.endTime).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A',
+          severity: 'success',
+        });
+      }
     });
 
   return activities.slice(0, 5);
@@ -402,51 +414,61 @@ const generateFinancialAnalystActivities = () => {
 
   // Recent fuel expenses
   mockFuel
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
     .slice(0, 3)
     .forEach(fuel => {
-      const vehicle = mockVehicles.find(v => v.id === fuel.vehicleId);
-      activities.push({
-        id: `fuel-${fuel.id}`,
-        icon: FuelIcon,
-        title: `⛽ Fuel Expense`,
-        description: `${vehicle?.name} - ${fuel.quantity}L @ ₹${fuel.pricePerLiter}/L`,
-        timestamp: `Cost: ₹${fuel.totalCost.toLocaleString('en-IN')}`,
-        severity: 'info',
-      });
+      const vehicle = mockVehicles.find(v => v.id === fuel.vehicle);
+      if (vehicle) {
+        activities.push({
+          id: `fuel-${fuel.id}`,
+          icon: FuelIcon,
+          title: `⛽ Fuel Expense`,
+          description: `${vehicle.name || 'Unknown Vehicle'} - ${fuel.quantity || 0}L @ ₹${fuel.price || 0}/L`,
+          timestamp: `Cost: ₹${(fuel.totalCost || 0).toLocaleString('en-IN')}`,
+          severity: 'info',
+        });
+      }
     });
 
   // Recent maintenance costs
   mockMaintenance
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .sort((a, b) => {
+      const dateA = new Date(a.completedDate || a.scheduledDate || 0);
+      const dateB = new Date(b.completedDate || b.scheduledDate || 0);
+      return dateB - dateA;
+    })
     .slice(0, 2)
     .forEach(maintenance => {
-      const vehicle = mockVehicles.find(v => v.id === maintenance.vehicleId);
-      activities.push({
-        id: `maint-cost-${maintenance.id}`,
-        icon: WarningIcon,
-        title: `🔧 Maintenance Cost`,
-        description: `${vehicle?.name} - ${maintenance.type}`,
-        timestamp: `Cost: ₹${maintenance.cost.toLocaleString('en-IN')}`,
-        severity: 'warning',
-      });
+      const vehicle = mockVehicles.find(v => v.id === maintenance.vehicle);
+      if (vehicle) {
+        activities.push({
+          id: `maint-cost-${maintenance.id}`,
+          icon: WarningIcon,
+          title: `🔧 Maintenance Cost`,
+          description: `${vehicle.name || 'Unknown Vehicle'} - ${maintenance.maintenanceType || 'Service'}`,
+          timestamp: `Cost: ₹${(maintenance.cost || 0).toLocaleString('en-IN')}`,
+          severity: 'warning',
+        });
+      }
     });
 
   // High expense trips
   mockTrips
-    .filter(t => t.actualOperationalCost > 5000)
-    .sort((a, b) => b.actualOperationalCost - a.actualOperationalCost)
+    .filter(t => (t.actualOperationalCost || 0) > 5000)
+    .sort((a, b) => (b.actualOperationalCost || 0) - (a.actualOperationalCost || 0))
     .slice(0, 2)
     .forEach(trip => {
       const vehicle = mockVehicles.find(v => v.id === trip.vehicle);
-      activities.push({
-        id: `expense-trip-${trip.id}`,
-        icon: TrendingUpIcon,
-        title: `💰 High Cost Trip`,
-        description: `${vehicle?.name} - ${trip.startLocation} to ${trip.endLocation}`,
-        timestamp: `Cost: ₹${trip.actualOperationalCost.toLocaleString('en-IN')}`,
-        severity: 'warning',
-      });
+      if (vehicle) {
+        activities.push({
+          id: `expense-trip-${trip.id}`,
+          icon: TrendingUpIcon,
+          title: `💰 High Cost Trip`,
+          description: `${vehicle.name || 'Unknown Vehicle'} - ${trip.startLocation || 'N/A'} to ${trip.endLocation || 'N/A'}`,
+          timestamp: `Cost: ₹${(trip.actualOperationalCost || 0).toLocaleString('en-IN')}`,
+          severity: 'warning',
+        });
+      }
     });
 
   return activities.slice(0, 5);

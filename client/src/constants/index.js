@@ -3,11 +3,11 @@
  */
 
 export const USER_ROLES = {
-  ADMIN: 'admin',
-  MANAGER: 'manager',
+  FLEET_MANAGER: 'fleet_manager',
+  DISPATCHER: 'dispatcher',
   DRIVER: 'driver',
-  OPERATIONS_OFFICER: 'operations_officer',
-  MAINTENANCE_OFFICER: 'maintenance_officer',
+  SAFETY_OFFICER: 'safety_officer',
+  FINANCIAL_ANALYST: 'financial_analyst',
 };
 
 export const VEHICLE_STATUS = {

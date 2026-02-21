@@ -40,9 +40,14 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: USER_ROLES.DRIVER, // Default role
+    role: USER_ROLES.DISPATCHER, // Default role
     phone: '',
-    licenseNumber: '', // Only for drivers
+    department: '', // For Fleet Manager
+    yearsOfExperience: '', // For Fleet Manager, Dispatcher, Safety Officer, Financial Analyst
+    certifications: '', // For Safety Officer, Financial Analyst
+    preferredZones: '', // For Dispatcher
+    licenseNumber: '', // For Driver
+    licenseType: '', // For Driver
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -52,9 +57,11 @@ const Register = () => {
 
   // List of available roles for registration
   const availableRoles = [
+    { value: USER_ROLES.FLEET_MANAGER, label: 'Fleet Manager' },
+    { value: USER_ROLES.DISPATCHER, label: 'Dispatcher' },
     { value: USER_ROLES.DRIVER, label: 'Driver' },
-    { value: USER_ROLES.OPERATIONS_OFFICER, label: 'Operations Officer' },
-    { value: USER_ROLES.MAINTENANCE_OFFICER, label: 'Maintenance Officer' },
+    { value: USER_ROLES.SAFETY_OFFICER, label: 'Safety Officer' },
+    { value: USER_ROLES.FINANCIAL_ANALYST, label: 'Financial Analyst' },
   ];
 
   const handleChange = (e) => {
@@ -109,6 +116,40 @@ const Register = () => {
       } else if (formData.licenseNumber.trim().length < 5) {
         errors.licenseNumber = 'Please enter a valid license number';
       }
+
+      if (!formData.licenseType.trim()) {
+        errors.licenseType = 'License type is required for drivers';
+      }
+    }
+
+    // Department validation (for Fleet Manager)
+    if (formData.role === USER_ROLES.FLEET_MANAGER) {
+      if (!formData.department.trim()) {
+        errors.department = 'Department is required for Fleet Managers';
+      }
+    }
+
+    // Preferred zones validation (for Dispatcher)
+    if (formData.role === USER_ROLES.DISPATCHER) {
+      if (!formData.preferredZones.trim()) {
+        errors.preferredZones = 'Preferred zones are required for Dispatchers';
+      }
+    }
+
+    // Years of experience validation (for multiple roles)
+    if ([USER_ROLES.FLEET_MANAGER, USER_ROLES.DISPATCHER, USER_ROLES.SAFETY_OFFICER, USER_ROLES.FINANCIAL_ANALYST].includes(formData.role)) {
+      if (!formData.yearsOfExperience) {
+        errors.yearsOfExperience = 'Years of experience is required';
+      } else if (isNaN(formData.yearsOfExperience) || formData.yearsOfExperience < 0 || formData.yearsOfExperience > 60) {
+        errors.yearsOfExperience = 'Please enter a valid number of years (0-60)';
+      }
+    }
+
+    // Certifications validation (for Safety Officer and Financial Analyst)
+    if ([USER_ROLES.SAFETY_OFFICER, USER_ROLES.FINANCIAL_ANALYST].includes(formData.role)) {
+      if (!formData.certifications.trim()) {
+        errors.certifications = 'Certifications/Qualifications are required';
+      }
     }
 
     // Password validation
@@ -150,9 +191,22 @@ const Register = () => {
         phone: formData.phone,
       };
 
-      // Add license number only for drivers
+      // Add role-specific fields
       if (formData.role === USER_ROLES.DRIVER) {
         registrationData.licenseNumber = formData.licenseNumber.trim();
+        registrationData.licenseType = formData.licenseType.trim();
+      } else if (formData.role === USER_ROLES.FLEET_MANAGER) {
+        registrationData.department = formData.department.trim();
+        registrationData.yearsOfExperience = parseInt(formData.yearsOfExperience);
+      } else if (formData.role === USER_ROLES.DISPATCHER) {
+        registrationData.yearsOfExperience = parseInt(formData.yearsOfExperience);
+        registrationData.preferredZones = formData.preferredZones.trim();
+      } else if (formData.role === USER_ROLES.SAFETY_OFFICER) {
+        registrationData.yearsOfExperience = parseInt(formData.yearsOfExperience);
+        registrationData.certifications = formData.certifications.trim();
+      } else if (formData.role === USER_ROLES.FINANCIAL_ANALYST) {
+        registrationData.yearsOfExperience = parseInt(formData.yearsOfExperience);
+        registrationData.certifications = formData.certifications.trim();
       }
 
       await register(registrationData);
@@ -344,18 +398,177 @@ const Register = () => {
 
             {/* License Number Field - Only for Drivers */}
             {formData.role === USER_ROLES.DRIVER && (
-              <TextField
-                fullWidth
-                label="License Number"
-                name="licenseNumber"
-                value={formData.licenseNumber}
-                onChange={handleChange}
-                error={Boolean(validationErrors.licenseNumber)}
-                helperText={validationErrors.licenseNumber}
-                margin="normal"
-                placeholder="DL123456789"
-                autoComplete="off"
-              />
+              <>
+                <TextField
+                  fullWidth
+                  label="License Number"
+                  name="licenseNumber"
+                  value={formData.licenseNumber}
+                  onChange={handleChange}
+                  error={Boolean(validationErrors.licenseNumber)}
+                  helperText={validationErrors.licenseNumber}
+                  margin="normal"
+                  placeholder="DL123456789"
+                  autoComplete="off"
+                />
+
+                <FormControl
+                  fullWidth
+                  margin="normal"
+                  error={Boolean(validationErrors.licenseType)}
+                >
+                  <InputLabel>License Type</InputLabel>
+                  <Select
+                    name="licenseType"
+                    value={formData.licenseType}
+                    onChange={handleChange}
+                    label="License Type"
+                  >
+                    <MenuItem value="Truck">Truck</MenuItem>
+                    <MenuItem value="Van">Van</MenuItem>
+                    <MenuItem value="Car">Car</MenuItem>
+                  </Select>
+                  {validationErrors.licenseType && (
+                    <Typography
+                      sx={{
+                        color: '#d32f2f',
+                        fontSize: '0.75rem',
+                        mt: 0.5,
+                        ml: 1.75,
+                      }}
+                    >
+                      {validationErrors.licenseType}
+                    </Typography>
+                  )}
+                </FormControl>
+              </>
+            )}
+
+            {/* Fleet Manager Fields */}
+            {formData.role === USER_ROLES.FLEET_MANAGER && (
+              <>
+                <TextField
+                  fullWidth
+                  label="Department"
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  error={Boolean(validationErrors.department)}
+                  helperText={validationErrors.department}
+                  margin="normal"
+                  placeholder="Operations, Fleet Management, etc."
+                />
+
+                <TextField
+                  fullWidth
+                  label="Years of Experience"
+                  name="yearsOfExperience"
+                  type="number"
+                  value={formData.yearsOfExperience}
+                  onChange={handleChange}
+                  error={Boolean(validationErrors.yearsOfExperience)}
+                  helperText={validationErrors.yearsOfExperience}
+                  margin="normal"
+                  placeholder="5"
+                  inputProps={{ min: 0, max: 60 }}
+                />
+              </>
+            )}
+
+            {/* Dispatcher Fields */}
+            {formData.role === USER_ROLES.DISPATCHER && (
+              <>
+                <TextField
+                  fullWidth
+                  label="Years of Experience"
+                  name="yearsOfExperience"
+                  type="number"
+                  value={formData.yearsOfExperience}
+                  onChange={handleChange}
+                  error={Boolean(validationErrors.yearsOfExperience)}
+                  helperText={validationErrors.yearsOfExperience}
+                  margin="normal"
+                  placeholder="3"
+                  inputProps={{ min: 0, max: 60 }}
+                />
+
+                <TextField
+                  fullWidth
+                  label="Preferred Zones/Routes"
+                  name="preferredZones"
+                  value={formData.preferredZones}
+                  onChange={handleChange}
+                  error={Boolean(validationErrors.preferredZones)}
+                  helperText={validationErrors.preferredZones || 'e.g., Mumbai-Pune, North Region'}
+                  margin="normal"
+                  multiline
+                  rows={2}
+                />
+              </>
+            )}
+
+            {/* Safety Officer Fields */}
+            {formData.role === USER_ROLES.SAFETY_OFFICER && (
+              <>
+                <TextField
+                  fullWidth
+                  label="Years of Experience"
+                  name="yearsOfExperience"
+                  type="number"
+                  value={formData.yearsOfExperience}
+                  onChange={handleChange}
+                  error={Boolean(validationErrors.yearsOfExperience)}
+                  helperText={validationErrors.yearsOfExperience}
+                  margin="normal"
+                  placeholder="4"
+                  inputProps={{ min: 0, max: 60 }}
+                />
+
+                <TextField
+                  fullWidth
+                  label="Certifications/Qualifications"
+                  name="certifications"
+                  value={formData.certifications}
+                  onChange={handleChange}
+                  error={Boolean(validationErrors.certifications)}
+                  helperText={validationErrors.certifications || 'e.g., OSHA, Safety Management, Risk Assessment'}
+                  margin="normal"
+                  multiline
+                  rows={2}
+                />
+              </>
+            )}
+
+            {/* Financial Analyst Fields */}
+            {formData.role === USER_ROLES.FINANCIAL_ANALYST && (
+              <>
+                <TextField
+                  fullWidth
+                  label="Years of Experience in Finance"
+                  name="yearsOfExperience"
+                  type="number"
+                  value={formData.yearsOfExperience}
+                  onChange={handleChange}
+                  error={Boolean(validationErrors.yearsOfExperience)}
+                  helperText={validationErrors.yearsOfExperience}
+                  margin="normal"
+                  placeholder="5"
+                  inputProps={{ min: 0, max: 60 }}
+                />
+
+                <TextField
+                  fullWidth
+                  label="Certifications/Qualifications"
+                  name="certifications"
+                  value={formData.certifications}
+                  onChange={handleChange}
+                  error={Boolean(validationErrors.certifications)}
+                  helperText={validationErrors.certifications || 'e.g., CPA, MBA Finance, ACCA'}
+                  margin="normal"
+                  multiline
+                  rows={2}
+                />
+              </>
             )}
 
             {/* Password Field */}
