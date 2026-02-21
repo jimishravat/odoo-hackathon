@@ -147,11 +147,11 @@ const Settings = () => {
                 <TextField
                   fullWidth
                   size="small"
-                  defaultValue={user?.name || ''}
+                  defaultValue={`${user?.firstName || ''} ${user?.lastName || ''}`.trim()}
                   variant="outlined"
                 />
               ) : (
-                <Typography variant="body1">{user?.name || 'N/A'}</Typography>
+                <Typography variant="body1">{`${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'N/A'}</Typography>
               )}
             </Box>
 
