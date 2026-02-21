@@ -1,0 +1,358 @@
+/**
+ * Mock Data for Development
+ * All static data for the application when backend is not available
+ */
+
+// Mock Users
+export const mockUsers = [
+  {
+    id: 1,
+    email: 'admin@fleetflow.com',
+    password: 'admin123', // Mock password for demo
+    firstName: 'Admin',
+    lastName: 'User',
+    role: 'admin',
+    phone: '9876543210',
+    address: '123 Main St, City',
+    createdAt: '2024-01-01',
+  },
+  {
+    id: 2,
+    email: 'manager@fleetflow.com',
+    password: 'manager123',
+    firstName: 'John',
+    lastName: 'Manager',
+    role: 'manager',
+    phone: '9876543211',
+    address: '456 Oak Ave, City',
+    createdAt: '2024-01-05',
+  },
+  {
+    id: 3,
+    email: 'driver@fleetflow.com',
+    password: 'driver123',
+    firstName: 'Michael',
+    lastName: 'Driver',
+    role: 'driver',
+    phone: '9876543212',
+    address: '789 Pine Rd, City',
+    createdAt: '2024-01-10',
+  },
+];
+
+// Mock Vehicles
+export const mockVehicles = [
+  {
+    id: 1,
+    name: 'Truck-001',
+    licensePlate: 'MH-01-AB-1234',
+    vin: '1HGBH41JXMN109186',
+    type: 'Truck',
+    fuelType: 'diesel',
+    capacity: 5000,
+    currentLoad: 3500,
+    status: 'active',
+    location: { lat: 19.0760, lng: 72.8777 },
+    lastServiceDate: '2024-02-01',
+    mileage: 45000,
+    owner: 'John Doe',
+    purchaseDate: '2022-05-15',
+    insuranceExpiry: '2025-05-15',
+  },
+  {
+    id: 2,
+    name: 'Van-002',
+    licensePlate: 'MH-01-CD-5678',
+    vin: '2T1BF1K84C9000001',
+    type: 'Van',
+    fuelType: 'petrol',
+    capacity: 2000,
+    currentLoad: 1200,
+    status: 'active',
+    location: { lat: 19.0850, lng: 72.8950 },
+    lastServiceDate: '2024-01-15',
+    mileage: 32000,
+    owner: 'Jane Smith',
+    purchaseDate: '2023-03-20',
+    insuranceExpiry: '2025-03-20',
+  },
+  {
+    id: 3,
+    name: 'Car-003',
+    licensePlate: 'MH-01-EF-9012',
+    vin: '3G1YF21G965147256',
+    type: 'Car',
+    fuelType: 'cng',
+    capacity: 500,
+    currentLoad: 300,
+    status: 'maintenance',
+    location: { lat: 19.0900, lng: 72.8700 },
+    lastServiceDate: '2024-02-10',
+    mileage: 28000,
+    owner: 'Robert Johnson',
+    purchaseDate: '2023-07-12',
+    insuranceExpiry: '2025-07-12',
+  },
+];
+
+// Mock Drivers
+export const mockDrivers = [
+  {
+    id: 1,
+    name: 'Rajesh Kumar',
+    email: 'rajesh@fleetflow.com',
+    phone: '9876543220',
+    licenseNumber: 'DL-0020150091234',
+    licenseExpiry: '2026-05-20',
+    status: 'active',
+    assignedVehicle: 1,
+    totalTrips: 145,
+    safetyRating: 4.8,
+    yearsExperience: 8,
+    address: '321 Maple Ln, City',
+    emergencyContact: '9876543221',
+    dateOfBirth: '1990-03-15',
+  },
+  {
+    id: 2,
+    name: 'Priya Singh',
+    email: 'priya@fleetflow.com',
+    phone: '9876543221',
+    licenseNumber: 'DL-0020160091235',
+    licenseExpiry: '2025-08-10',
+    status: 'active',
+    assignedVehicle: 2,
+    totalTrips: 98,
+    safetyRating: 4.6,
+    yearsExperience: 5,
+    address: '654 Elm St, City',
+    emergencyContact: '9876543222',
+    dateOfBirth: '1992-07-22',
+  },
+  {
+    id: 3,
+    name: 'Amit Patel',
+    email: 'amit@fleetflow.com',
+    phone: '9876543222',
+    licenseNumber: 'DL-0020170091236',
+    licenseExpiry: '2027-02-14',
+    status: 'on-leave',
+    assignedVehicle: null,
+    totalTrips: 156,
+    safetyRating: 4.9,
+    yearsExperience: 10,
+    address: '987 Cedar Ave, City',
+    emergencyContact: '9876543223',
+    dateOfBirth: '1988-11-05',
+  },
+];
+
+// Mock Trips
+export const mockTrips = [
+  {
+    id: 1,
+    tripNumber: 'TRIP-2024-001',
+    vehicle: 1,
+    driver: 1,
+    startLocation: 'Mumbai Warehouse',
+    endLocation: 'Pune Distribution Center',
+    startTime: '2024-02-20 08:00',
+    endTime: '2024-02-20 14:30',
+    distance: 148.5,
+    status: 'completed',
+    load: 3500,
+    fuel: 45.5,
+    rating: 4.8,
+    notes: 'Delivery completed on time',
+  },
+  {
+    id: 2,
+    tripNumber: 'TRIP-2024-002',
+    vehicle: 2,
+    driver: 2,
+    startLocation: 'Pune Distribution Center',
+    endLocation: 'Nagpur Branch',
+    startTime: '2024-02-20 15:00',
+    endTime: '2024-02-21 06:00',
+    distance: 312.0,
+    status: 'in-progress',
+    load: 1200,
+    fuel: 52.0,
+    rating: null,
+    notes: 'In transit, ETA 06:00 AM',
+  },
+  {
+    id: 3,
+    tripNumber: 'TRIP-2024-003',
+    vehicle: 1,
+    driver: 1,
+    startLocation: 'Pune Distribution Center',
+    endLocation: 'Aurangabad Warehouse',
+    startTime: '2024-02-21 09:00',
+    endTime: null,
+    distance: 235.0,
+    status: 'scheduled',
+    load: 0,
+    fuel: 0,
+    rating: null,
+    notes: 'Scheduled for tomorrow',
+  },
+];
+
+// Mock Maintenance Records
+export const mockMaintenance = [
+  {
+    id: 1,
+    vehicle: 1,
+    maintenanceType: 'Regular Service',
+    scheduledDate: '2024-03-01',
+    completedDate: '2024-02-28',
+    status: 'completed',
+    cost: 5000,
+    description: 'Oil change, filter replacement, inspection',
+    notes: 'All checks passed',
+  },
+  {
+    id: 2,
+    vehicle: 3,
+    maintenanceType: 'Major Repair',
+    scheduledDate: '2024-02-25',
+    completedDate: null,
+    status: 'in-progress',
+    cost: 25000,
+    description: 'Engine repair and transmission check',
+    notes: 'Waiting for parts',
+  },
+  {
+    id: 3,
+    vehicle: 2,
+    maintenanceType: 'Tire Replacement',
+    scheduledDate: '2024-03-15',
+    completedDate: null,
+    status: 'scheduled',
+    cost: 8000,
+    description: 'Replace all 4 tires',
+    notes: 'Scheduled appointment',
+  },
+];
+
+// Mock Fuel Records
+export const mockFuel = [
+  {
+    id: 1,
+    vehicle: 1,
+    date: '2024-02-20',
+    quantity: 45.5,
+    price: 95,
+    totalCost: 4322.5,
+    fuelType: 'diesel',
+    mileage: 45000,
+    location: 'Mumbai Fuel Station',
+  },
+  {
+    id: 2,
+    vehicle: 2,
+    date: '2024-02-20',
+    quantity: 52.0,
+    price: 105,
+    totalCost: 5460,
+    fuelType: 'petrol',
+    mileage: 32000,
+    location: 'Pune Fuel Station',
+  },
+  {
+    id: 3,
+    vehicle: 1,
+    date: '2024-02-19',
+    quantity: 48.0,
+    price: 95,
+    totalCost: 4560,
+    fuelType: 'diesel',
+    mileage: 44920,
+    location: 'Mumbai Fuel Station',
+  },
+];
+
+// Mock Expenses
+export const mockExpenses = [
+  {
+    id: 1,
+    date: '2024-02-20',
+    category: 'Fuel',
+    amount: 4322.5,
+    vehicle: 1,
+    description: 'Diesel fuel refill',
+    receipt: 'FUEL-001',
+    status: 'approved',
+  },
+  {
+    id: 2,
+    date: '2024-02-20',
+    category: 'Maintenance',
+    amount: 5000,
+    vehicle: 1,
+    description: 'Regular service',
+    receipt: 'MAINT-001',
+    status: 'approved',
+  },
+  {
+    id: 3,
+    date: '2024-02-21',
+    category: 'Toll',
+    amount: 450,
+    vehicle: 2,
+    description: 'Toll charges',
+    receipt: 'TOLL-001',
+    status: 'pending',
+  },
+];
+
+// Mock Alerts
+export const mockAlerts = [
+  {
+    id: 1,
+    type: 'warning',
+    vehicle: 3,
+    message: 'Vehicle due for maintenance',
+    severity: 'high',
+    createdAt: '2024-02-21',
+    read: false,
+  },
+  {
+    id: 2,
+    type: 'info',
+    vehicle: 2,
+    message: 'Trip completed successfully',
+    severity: 'low',
+    createdAt: '2024-02-20',
+    read: true,
+  },
+  {
+    id: 3,
+    type: 'warning',
+    vehicle: 1,
+    message: 'Fuel efficiency below average',
+    severity: 'medium',
+    createdAt: '2024-02-19',
+    read: false,
+  },
+];
+
+// Mock Dashboard Data
+export const mockDashboardData = {
+  totalVehicles: 245,
+  activeTrips: 18,
+  totalDrivers: 156,
+  fuelConsumed: 2450,
+  utilization: {
+    used: 180,
+    total: 245,
+  },
+  completionRate: {
+    completed: 1200,
+    total: 1245,
+  },
+};
+
+// Helper function to simulate API delay
+export const simulateDelay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
