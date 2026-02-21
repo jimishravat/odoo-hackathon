@@ -95,7 +95,7 @@ const Sidebar = () => {
         >
           F
         </Box>
-        {!isMobile && (
+        {(!isMobile || sidebarOpen) && (
           <Typography variant="h6" sx={{ fontWeight: 600, color: '#333' }}>
             FleetFlow
           </Typography>
@@ -105,7 +105,7 @@ const Sidebar = () => {
       <Divider />
 
       {/* User Info */}
-      {user && !isMobile && (
+      {user && (!isMobile || sidebarOpen) && (
         <Box sx={{ p: 2, backgroundColor: '#fff' }}>
           <Typography variant="body2" sx={{ fontWeight: 600, color: '#333' }}>
             {user.firstName} {user.lastName}
@@ -145,7 +145,7 @@ const Sidebar = () => {
               >
                 <Icon />
               </ListItemIcon>
-              {!isMobile && (
+              {(!isMobile || sidebarOpen) && (
                 <ListItemText
                   primary={item.label}
                   sx={{
@@ -178,7 +178,7 @@ const Sidebar = () => {
         <ListItemIcon sx={{ minWidth: 40, color: '#F44336' }}>
           <LogoutIcon />
         </ListItemIcon>
-        {!isMobile && <ListItemText primary="Logout" />}
+        {(!isMobile || sidebarOpen) && <ListItemText primary="Logout" />}
       </ListItem>
     </Box>
   );
