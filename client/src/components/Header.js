@@ -102,7 +102,7 @@ const Header = () => {
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           {/* Search Icon */}
-          <IconButton
+          {/* <IconButton
             color="inherit"
             aria-label="search"
             sx={{ display: { xs: 'none', md: 'flex' } }}
@@ -110,7 +110,7 @@ const Header = () => {
             <SearchIcon sx={{ color: '#666' }} />
           </IconButton>
 
-          {/* Notifications */}
+         
           <IconButton
             color="inherit"
             aria-label="notifications"
@@ -119,7 +119,7 @@ const Header = () => {
             <Badge badgeContent={3} color="error">
               <NotificationsIcon sx={{ color: '#666' }} />
             </Badge>
-          </IconButton>
+          </IconButton> */}
 
           <Menu
             anchorEl={notificationAnchor}

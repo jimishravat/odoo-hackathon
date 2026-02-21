@@ -21,7 +21,7 @@ import {
   Typography,
   Alert,
 } from '@mui/material';
-import { validateTripAssignment, validateVehicleAvailability, validateDriverLicense, getLicenseExpiryStatus } from '../utils/validationUtils';
+import { validateTripAssignment, validateVehicleAvailability, validateDriverLicense, validateCargoCapacity, getLicenseExpiryStatus, checkTripAssignmentAvailability } from '../utils/validationUtils';
 
 const TripFormModal = ({
   open,
@@ -30,6 +30,7 @@ const TripFormModal = ({
   initialData = null,
   vehicles = [],
   drivers = [],
+  trips = [],
   loading = false,
 }) => {
   const [formData, setFormData] = useState({
@@ -193,6 +194,23 @@ const TripFormModal = ({
         }
         break;
 
+      case 'load':
+        // Validate cargo capacity
+        if (value && formData.vehicle) {
+          const vehicle = vehicles.find(v => v.id === parseInt(formData.vehicle));
+          if (vehicle) {
+            const capacityValidation = validateCargoCapacity(vehicle, value);
+            if (!capacityValidation.isValid) {
+              newErrors[field] = capacityValidation.message;
+            } else {
+              delete newErrors[field];
+            }
+          }
+        } else {
+          delete newErrors[field];
+        }
+        break;
+
       default:
         break;
     }
@@ -246,6 +264,40 @@ const TripFormModal = ({
     const vehicle = vehicles.find(v => v.id === parseInt(formData.vehicle));
 
     const alerts = [];
+
+    // Check if driver and vehicle are already assigned to active trips
+    if (driver && vehicle && trips.length > 0) {
+      const availabilityCheck = checkTripAssignmentAvailability(
+        parseInt(formData.driver),
+        parseInt(formData.vehicle),
+        trips,
+        initialData?.id // Exclude current trip if editing
+      );
+      
+      if (!availabilityCheck.isAvailable) {
+        availabilityCheck.errors.forEach(error => {
+          alerts.push({
+            type: 'error',
+            message: error,
+          });
+        });
+      }
+    }
+
+    // Check cargo capacity
+    if (vehicle && formData.load) {
+      const cargoValidation = validateCargoCapacity(vehicle, formData.load);
+      if (!cargoValidation.isValid) {
+        alerts.push({
+          type: 'error',
+          message: cargoValidation.message,
+        });
+        setErrors(prev => ({
+          ...prev,
+          load: cargoValidation.message,
+        }));
+      }
+    }
 
     if (driver && vehicle && formData.startTime) {
       const assignmentValidation = validateTripAssignment(driver, vehicle, formData.startTime, formData.endTime);
@@ -465,7 +517,10 @@ const TripFormModal = ({
                   inputProps={{ step: '0.01', min: '0' }}
                   value={formData.load}
                   onChange={(e) => handleInputChange('load', e.target.value)}
+                  onBlur={() => handleBlur('load')}
                   size="small"
+                  error={touched.load && !!errors.load}
+                  helperText={touched.load ? errors.load : formData.vehicle && formData.load ? `Vehicle capacity: ${vehicles.find(v => v.id === parseInt(formData.vehicle))?.capacity || 0} kg` : ''}
                 />
               </Grid>
 

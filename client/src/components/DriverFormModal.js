@@ -33,6 +33,7 @@ const DriverFormModal = ({
     phone: '',
     licenseNumber: '',
     licenseExpiry: '',
+    licenseType: '',
     status: 'active',
     assignedVehicle: '',
     completionRate: 90,
@@ -47,6 +48,7 @@ const DriverFormModal = ({
   const [errors, setErrors] = useState({});
 
   const statuses = ['active', 'on-leave', 'suspended'];
+  const licenseTypes = ['Truck', 'Van', 'Car'];
 
   useEffect(() => {
     if (initialData) {
@@ -58,6 +60,7 @@ const DriverFormModal = ({
         phone: '',
         licenseNumber: '',
         licenseExpiry: '',
+        licenseType: '',
         status: 'active',
         assignedVehicle: '',
         completionRate: 90,
@@ -93,6 +96,10 @@ const DriverFormModal = ({
 
     if (!formData.licenseExpiry) {
       newErrors.licenseExpiry = 'License expiry date is required';
+    }
+
+    if (!formData.licenseType) {
+      newErrors.licenseType = 'License type is required';
     }
 
     if (!formData.address || formData.address.trim().length < 5) {
@@ -242,6 +249,29 @@ const DriverFormModal = ({
             disabled={loading}
             fullWidth
           />
+
+          {/* License Type */}
+          <FormControl fullWidth error={!!errors.licenseType}>
+            <InputLabel>License Type</InputLabel>
+            <Select
+              name="licenseType"
+              value={formData.licenseType}
+              onChange={handleChange}
+              label="License Type"
+              disabled={loading}
+            >
+              {licenseTypes.map((type) => (
+                <MenuItem key={type} value={type}>
+                  {type}
+                </MenuItem>
+              ))}
+            </Select>
+            {errors.licenseType && (
+              <Box sx={{ color: '#f44336', fontSize: '0.75rem', mt: 0.5 }}>
+                {errors.licenseType}
+              </Box>
+            )}
+          </FormControl>
 
           {/* Status */}
           <FormControl fullWidth error={!!errors.status}>

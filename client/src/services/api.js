@@ -132,6 +132,7 @@ export const vehiclesAPI = {
     await simulateDelay(API_DELAY);
     const newVehicle = { id: Date.now(), ...vehicleData };
     mockVehicles.push(newVehicle);
+    saveToStorage(STORAGE_KEYS.VEHICLES, mockVehicles);
     return { success: true, data: newVehicle, message: 'Vehicle created' };
   },
 
@@ -144,6 +145,7 @@ export const vehiclesAPI = {
       throw error;
     }
     Object.assign(vehicle, vehicleData);
+    saveToStorage(STORAGE_KEYS.VEHICLES, mockVehicles);
     return { success: true, data: vehicle, message: 'Vehicle updated' };
   },
 
@@ -156,6 +158,7 @@ export const vehiclesAPI = {
       throw error;
     }
     mockVehicles.splice(index, 1);
+    saveToStorage(STORAGE_KEYS.VEHICLES, mockVehicles);
     return { success: true, message: 'Vehicle deleted' };
   },
 
@@ -235,6 +238,7 @@ export const driversAPI = {
     await simulateDelay(API_DELAY);
     const newDriver = { id: Date.now(), ...driverData };
     mockDrivers.push(newDriver);
+    saveToStorage(STORAGE_KEYS.DRIVERS, mockDrivers);
     return { success: true, data: newDriver, message: 'Driver created' };
   },
 
@@ -247,6 +251,7 @@ export const driversAPI = {
       throw error;
     }
     Object.assign(driver, driverData);
+    saveToStorage(STORAGE_KEYS.DRIVERS, mockDrivers);
     return { success: true, data: driver, message: 'Driver updated' };
   },
 
@@ -259,6 +264,7 @@ export const driversAPI = {
       throw error;
     }
     mockDrivers.splice(index, 1);
+    saveToStorage(STORAGE_KEYS.DRIVERS, mockDrivers);
     return { success: true, message: 'Driver deleted' };
   },
 
@@ -291,6 +297,7 @@ export const driversAPI = {
       throw error;
     }
     driver.status = status;
+    saveToStorage(STORAGE_KEYS.DRIVERS, mockDrivers);
     return { success: true, data: driver, message: 'Driver status updated' };
   },
 };
@@ -447,6 +454,7 @@ export const maintenanceAPI = {
     await simulateDelay(API_DELAY);
     const newM = { id: Date.now(), ...maintenanceData };
     mockMaintenance.push(newM);
+    saveToStorage(STORAGE_KEYS.MAINTENANCE, mockMaintenance);
     return { success: true, data: newM, message: 'Maintenance scheduled' };
   },
 
@@ -459,6 +467,7 @@ export const maintenanceAPI = {
       throw error;
     }
     Object.assign(m, maintenanceData);
+    saveToStorage(STORAGE_KEYS.MAINTENANCE, mockMaintenance);
     return { success: true, data: m, message: 'Maintenance updated' };
   },
 
@@ -471,6 +480,7 @@ export const maintenanceAPI = {
       throw error;
     }
     mockMaintenance.splice(index, 1);
+    saveToStorage(STORAGE_KEYS.MAINTENANCE, mockMaintenance);
     return { success: true, message: 'Maintenance deleted' };
   },
 
@@ -478,6 +488,7 @@ export const maintenanceAPI = {
     await simulateDelay(API_DELAY);
     const newM = { id: Date.now(), status: 'scheduled', ...scheduleData };
     mockMaintenance.push(newM);
+    saveToStorage(STORAGE_KEYS.MAINTENANCE, mockMaintenance);
     return { success: true, data: newM, message: 'Maintenance scheduled' };
   },
 
@@ -485,6 +496,7 @@ export const maintenanceAPI = {
     await simulateDelay(API_DELAY);
     const newM = { id: Date.now(), status: 'completed', ...logData };
     mockMaintenance.push(newM);
+    saveToStorage(STORAGE_KEYS.MAINTENANCE, mockMaintenance);
     return { success: true, data: newM, message: 'Service logged' };
   },
 };
@@ -672,12 +684,14 @@ export const alertsAPI = {
       throw error;
     }
     alert.read = true;
+    saveToStorage(STORAGE_KEYS.ALERTS, mockAlerts);
     return { success: true, data: alert };
   },
 
   markAllAsRead: async () => {
     await simulateDelay(API_DELAY);
     mockAlerts.forEach(a => (a.read = true));
+    saveToStorage(STORAGE_KEYS.ALERTS, mockAlerts);
     return { success: true, message: 'All alerts marked as read' };
   },
 };
@@ -778,6 +792,7 @@ export const usersAPI = {
     await simulateDelay(API_DELAY);
     const newUser = { id: Date.now(), ...userData };
     mockUsers.push(newUser);
+    saveToStorage(STORAGE_KEYS.USERS, mockUsers);
     return { success: true, data: newUser, message: 'User created' };
   },
 
@@ -790,6 +805,7 @@ export const usersAPI = {
       throw error;
     }
     Object.assign(user, userData);
+    saveToStorage(STORAGE_KEYS.USERS, mockUsers);
     return { success: true, data: user, message: 'User updated' };
   },
 
@@ -802,6 +818,7 @@ export const usersAPI = {
       throw error;
     }
     mockUsers.splice(index, 1);
+    saveToStorage(STORAGE_KEYS.USERS, mockUsers);
     return { success: true, message: 'User deleted' };
   },
 
@@ -814,6 +831,7 @@ export const usersAPI = {
       throw error;
     }
     user.role = role;
+    saveToStorage(STORAGE_KEYS.USERS, mockUsers);
     return { success: true, data: user, message: 'User role updated' };
   },
 };

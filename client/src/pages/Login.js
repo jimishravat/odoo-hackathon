@@ -190,7 +190,7 @@ const Login = () => {
           </Box>
 
           {/* Demo Credentials Info */}
-          <Box sx={{ mt: 3, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+          {/* <Box sx={{ mt: 3, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
             <Typography variant="caption" display="block" sx={{ mb: 1, fontWeight: 600 }}>
               Test Accounts:
             </Typography>
@@ -207,7 +207,7 @@ const Login = () => {
                 </Typography>
               </Box>
             ))}
-          </Box>
+          </Box> */}
 
           {/* Footer */}
           <Box sx={{ mt: 3, textAlign: 'center' }}>

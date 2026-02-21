@@ -13,6 +13,15 @@ import {
   LinearProgress,
   useTheme,
   Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Divider,
+  Stack,
+  Tooltip,
 } from '@mui/material';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import RouteIcon from '@mui/icons-material/Route';
@@ -21,10 +30,449 @@ import FuelIcon from '@mui/icons-material/LocalGasStation';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import WarningIcon from '@mui/icons-material/Warning';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { useState, useEffect } from 'react';
 import MainLayout from '../components/MainLayout';
 import { useAuth } from '../hooks/useAuth';
 import { usePermission } from '../hooks/usePermission';
+import {
+  mockVehicles,
+  mockDrivers,
+  mockTrips,
+  mockFuel,
+  mockMaintenance,
+  mockExpenses,
+} from '../services/mockData';
+
+// ==================== KPI CALCULATION FUNCTIONS ====================
+
+/**
+ * Calculate Fleet Manager KPIs from mock data
+ * Synced with mockData.js as single source of truth
+ */
+const calculateFleetManagerKPIs = (theme) => {
+  const totalVehicles = mockVehicles.length;
+  const maintenanceVehicles = mockVehicles.filter(v => v.status === 'out of service').length;
+  const activeTrips = mockTrips.filter(t => t.status === 'in-progress').length;
+  const totalDrivers = mockDrivers.length;
+  const activeDrivers = mockDrivers.filter(d => d.status === 'active').length;
+  const totalFuelConsumed = mockFuel.reduce((sum, f) => sum + f.quantity, 0);
+
+  return [
+    {
+      title: 'Total Vehicles',
+      value: totalVehicles.toString(),
+      icon: DirectionsCarIcon,
+      color: theme.palette.primary.main,
+      subtitle: `${maintenanceVehicles} in maintenance`,
+    },
+    {
+      title: 'Active Trips',
+      value: activeTrips.toString(),
+      icon: RouteIcon,
+      color: theme.palette.success.main,
+      subtitle: 'On the road',
+    },
+    {
+      title: 'Total Drivers',
+      value: totalDrivers.toString(),
+      icon: PeopleIcon,
+      color: theme.palette.info.main,
+      subtitle: `${activeDrivers} active`,
+    },
+    {
+      title: 'Fuel Consumed',
+      value: `${(totalFuelConsumed / 1000).toFixed(2)}K L`,
+      icon: FuelIcon,
+      color: theme.palette.warning.main,
+      subtitle: 'This month',
+    },
+  ];
+};
+
+/**
+ * Calculate Dispatcher KPIs from mock data
+ * Focus on operational metrics
+ */
+const calculateDispatcherKPIs = (theme) => {
+  const totalVehicles = mockVehicles.length;
+  const availableVehicles = mockVehicles.filter(v => v.status === 'active').length;
+  const activeTrips = mockTrips.filter(t => t.status === 'in-progress').length;
+  const totalDrivers = mockDrivers.length;
+  const availableDrivers = mockDrivers.filter(d => d.status === 'active').length;
+
+  return [
+    {
+      title: 'Active Trips',
+      value: activeTrips.toString(),
+      icon: RouteIcon,
+      color: theme.palette.success.main,
+      subtitle: 'On the road',
+    },
+    {
+      title: 'Available Vehicles',
+      value: availableVehicles.toString(),
+      icon: DirectionsCarIcon,
+      color: theme.palette.primary.main,
+      subtitle: `${totalVehicles} total`,
+    },
+    {
+      title: 'Available Drivers',
+      value: availableDrivers.toString(),
+      icon: PeopleIcon,
+      color: theme.palette.info.main,
+      subtitle: `${totalDrivers} total`,
+    },
+  ];
+};
+
+/**
+ * Calculate Safety Officer KPIs from mock data
+ * Focus on compliance and safety metrics
+ */
+const calculateSafetyOfficerKPIs = (theme) => {
+  const totalDrivers = mockDrivers.length;
+  const expiredLicenses = mockDrivers.filter(d => new Date(d.licenseExpiry) < new Date()).length;
+  const complianceRate = Math.round(((totalDrivers - expiredLicenses) / totalDrivers) * 100);
+  
+  // License expiries in next 30 days
+  const today = new Date();
+  const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const upcomingExpiries = mockDrivers.filter(d => {
+    const expiry = new Date(d.licenseExpiry);
+    return expiry > today && expiry <= thirtyDaysFromNow;
+  }).length;
+
+  const vehiclesDueForService = mockVehicles.filter(v => v.status === 'out of service').length;
+
+  return [
+    {
+      title: 'Compliance Status',
+      value: `${complianceRate}%`,
+      icon: CheckCircleIcon,
+      color: theme.palette.success.main,
+      subtitle: 'All drivers compliant',
+    },
+    {
+      title: 'License Expiries',
+      value: upcomingExpiries.toString(),
+      icon: WarningIcon,
+      color: theme.palette.warning.main,
+      subtitle: 'Next 30 days',
+    },
+    {
+      title: 'Vehicles Due for Service',
+      value: vehiclesDueForService.toString(),
+      icon: DirectionsCarIcon,
+      color: theme.palette.error.main,
+      subtitle: 'Pending maintenance',
+    },
+  ];
+};
+
+/**
+ * Calculate Financial Analyst KPIs from mock data
+ * Focus on cost and financial metrics
+ */
+const calculateFinancialAnalystKPIs = (theme) => {
+  const totalFuelCost = mockFuel.reduce((sum, f) => sum + f.totalCost, 0);
+  const maintenanceCost = mockMaintenance.reduce((sum, m) => sum + m.cost, 0);
+  const totalExpenses = mockExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const fleetCost = totalFuelCost + maintenanceCost + totalExpenses;
+
+  return [
+    {
+      title: 'Total Fleet Cost',
+      value: `₹${(fleetCost / 100000).toFixed(1)}L`,
+      icon: TrendingUpIcon,
+      color: theme.palette.primary.main,
+      subtitle: 'This month',
+    },
+    {
+      title: 'Fuel Expenses',
+      value: `₹${(totalFuelCost / 100000).toFixed(1)}L`,
+      icon: FuelIcon,
+      color: theme.palette.warning.main,
+      subtitle: 'This month',
+    },
+    {
+      title: 'Maintenance Cost',
+      value: `₹${(maintenanceCost / 100000).toFixed(1)}L`,
+      icon: DirectionsCarIcon,
+      color: theme.palette.error.main,
+      subtitle: 'This month',
+    },
+  ];
+};
+
+// ==================== COMPONENT ====================
+
+// Activity Item Component for Recent Activity
+const ActivityItem = ({ icon: Icon, title, description, timestamp, severity = 'info' }) => {
+  const colors = {
+    info: '#2196F3',
+    success: '#4CAF50',
+    warning: '#FF9800',
+    error: '#f44336',
+  };
+
+  return (
+    <Box sx={{ display: 'flex', gap: 2, py: 1.5, borderBottom: '1px solid #f0f0f0' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 40,
+          height: 40,
+          borderRadius: '50%',
+          backgroundColor: `${colors[severity]}20`,
+          flexShrink: 0,
+        }}
+      >
+        <Icon sx={{ color: colors[severity], fontSize: 20 }} />
+      </Box>
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+          {title}
+        </Typography>
+        <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mt: 0.5 }}>
+          {description}
+        </Typography>
+        <Typography variant="caption" sx={{ color: '#999', mt: 0.5, display: 'block' }}>
+          {timestamp}
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
+
+/**
+ * Generate recent activities for Fleet Manager
+ * Shows recent trips and maintenance
+ */
+const generateFleetManagerActivities = () => {
+  const activities = [];
+
+  // Recent completed trips
+  mockTrips
+    .filter(t => t.status === 'completed')
+    .sort((a, b) => new Date(b.endTime || 0) - new Date(a.endTime || 0))
+    .slice(0, 3)
+    .forEach(trip => {
+      const driver = mockDrivers.find(d => d.id === trip.driver);
+      const vehicle = mockVehicles.find(v => v.id === trip.vehicle);
+      if (vehicle && driver) {
+        activities.push({
+          id: `trip-${trip.id}`,
+          icon: RouteIcon,
+          title: `Trip ${trip.tripNumber} Completed`,
+          description: `${vehicle.name || 'Unknown Vehicle'} - ${trip.startLocation || 'N/A'} to ${trip.endLocation || 'N/A'}`,
+          timestamp: trip.endTime ? new Date(trip.endTime).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A',
+          severity: 'success',
+        });
+      }
+    });
+
+  // Recent maintenance
+  mockMaintenance
+    .sort((a, b) => {
+      const dateA = new Date(a.completedDate || a.scheduledDate || 0);
+      const dateB = new Date(b.completedDate || b.scheduledDate || 0);
+      return dateB - dateA;
+    })
+    .slice(0, 2)
+    .forEach(maintenance => {
+      const vehicle = mockVehicles.find(v => v.id === maintenance.vehicle);
+      if (vehicle) {
+        activities.push({
+          id: `maintenance-${maintenance.id}`,
+          icon: WarningIcon,
+          title: `Maintenance: ${maintenance.maintenanceType || 'Service'}`,
+          description: `${vehicle.name || 'Unknown Vehicle'} - ${maintenance.description || 'N/A'}`,
+          timestamp: maintenance.completedDate ? new Date(maintenance.completedDate).toLocaleString('en-IN', { month: 'short', day: 'numeric' }) : 'Pending',
+          severity: 'warning',
+        });
+      }
+    });
+
+  return activities.slice(0, 5);
+};
+
+/**
+ * Generate recent activities for Dispatcher
+ * Shows active trips and driver assignments
+ */
+const generateDispatcherActivities = () => {
+  const activities = [];
+
+  // Active trips
+  mockTrips
+    .filter(t => t.status === 'in-progress')
+    .forEach(trip => {
+      const driver = mockDrivers.find(d => d.id === trip.driver);
+      const vehicle = mockVehicles.find(v => v.id === trip.vehicle);
+      if (vehicle && driver) {
+        activities.push({
+          id: `active-trip-${trip.id}`,
+          icon: AccessTimeIcon,
+          title: `🚚 ${driver.name || 'Unknown Driver'} - In Transit`,
+          description: `${vehicle.name || 'Unknown Vehicle'} | ${trip.startLocation || 'N/A'} → ${trip.endLocation || 'N/A'}`,
+          timestamp: `Distance: ${trip.distance || 0} km`,
+          severity: 'info',
+        });
+      }
+    });
+
+  // Recent trip completions
+  mockTrips
+    .filter(t => t.status === 'completed')
+    .sort((a, b) => new Date(b.endTime || 0) - new Date(a.endTime || 0))
+    .slice(0, 3)
+    .forEach(trip => {
+      const driver = mockDrivers.find(d => d.id === trip.driver);
+      if (driver) {
+        activities.push({
+          id: `completed-trip-${trip.id}`,
+          icon: CheckCircleIcon,
+          title: `✓ ${driver.name || 'Unknown Driver'} - Trip Complete`,
+          description: `Distance: ${trip.distance || 0} km | Rating: ${trip.rating || 'N/A'}`,
+          timestamp: trip.endTime ? new Date(trip.endTime).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A',
+          severity: 'success',
+        });
+      }
+    });
+
+  return activities.slice(0, 5);
+};
+
+/**
+ * Generate recent activities for Safety Officer
+ * Shows compliance alerts and expiry warnings
+ */
+const generateSafetyOfficerActivities = () => {
+  const activities = [];
+
+  // License expiry warnings
+  const today = new Date();
+  const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+  
+  mockDrivers
+    .filter(d => {
+      const expiry = new Date(d.licenseExpiry);
+      return expiry > today && expiry <= thirtyDaysFromNow;
+    })
+    .forEach(driver => {
+      activities.push({
+        id: `license-${driver.id}`,
+        icon: WarningIcon,
+        title: `⚠️ License Expiring Soon`,
+        description: `${driver.name} - License expires on ${new Date(driver.licenseExpiry).toLocaleDateString('en-IN')}`,
+        timestamp: `${Math.ceil((new Date(driver.licenseExpiry) - today) / (1000 * 60 * 60 * 24))} days remaining`,
+        severity: 'warning',
+      });
+    });
+
+  // Expired licenses
+  mockDrivers
+    .filter(d => new Date(d.licenseExpiry) < today)
+    .forEach(driver => {
+      activities.push({
+        id: `expired-${driver.id}`,
+        icon: ErrorIcon,
+        title: `❌ License Expired`,
+        description: `${driver.name} - License expired on ${new Date(driver.licenseExpiry).toLocaleDateString('en-IN')}`,
+        timestamp: 'Action required',
+        severity: 'error',
+      });
+    });
+
+  // Vehicles due for maintenance
+  mockVehicles
+    .filter(v => v.status === 'out of service')
+    .forEach(vehicle => {
+      activities.push({
+        id: `service-${vehicle.id}`,
+        icon: WarningIcon,
+        title: `🔧 Vehicle In Service`,
+        description: `${vehicle.name} - Currently out of service`,
+        timestamp: 'Check status',
+        severity: 'warning',
+      });
+    });
+
+  return activities.slice(0, 5);
+};
+
+/**
+ * Generate recent activities for Financial Analyst
+ * Shows cost updates and expense records
+ */
+const generateFinancialAnalystActivities = () => {
+  const activities = [];
+
+  // Recent fuel expenses
+  mockFuel
+    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+    .slice(0, 3)
+    .forEach(fuel => {
+      const vehicle = mockVehicles.find(v => v.id === fuel.vehicle);
+      if (vehicle) {
+        activities.push({
+          id: `fuel-${fuel.id}`,
+          icon: FuelIcon,
+          title: `⛽ Fuel Expense`,
+          description: `${vehicle.name || 'Unknown Vehicle'} - ${fuel.quantity || 0}L @ ₹${fuel.price || 0}/L`,
+          timestamp: `Cost: ₹${(fuel.totalCost || 0).toLocaleString('en-IN')}`,
+          severity: 'info',
+        });
+      }
+    });
+
+  // Recent maintenance costs
+  mockMaintenance
+    .sort((a, b) => {
+      const dateA = new Date(a.completedDate || a.scheduledDate || 0);
+      const dateB = new Date(b.completedDate || b.scheduledDate || 0);
+      return dateB - dateA;
+    })
+    .slice(0, 2)
+    .forEach(maintenance => {
+      const vehicle = mockVehicles.find(v => v.id === maintenance.vehicle);
+      if (vehicle) {
+        activities.push({
+          id: `maint-cost-${maintenance.id}`,
+          icon: WarningIcon,
+          title: `🔧 Maintenance Cost`,
+          description: `${vehicle.name || 'Unknown Vehicle'} - ${maintenance.maintenanceType || 'Service'}`,
+          timestamp: `Cost: ₹${(maintenance.cost || 0).toLocaleString('en-IN')}`,
+          severity: 'warning',
+        });
+      }
+    });
+
+  // High expense trips
+  mockTrips
+    .filter(t => (t.actualOperationalCost || 0) > 5000)
+    .sort((a, b) => (b.actualOperationalCost || 0) - (a.actualOperationalCost || 0))
+    .slice(0, 2)
+    .forEach(trip => {
+      const vehicle = mockVehicles.find(v => v.id === trip.vehicle);
+      if (vehicle) {
+        activities.push({
+          id: `expense-trip-${trip.id}`,
+          icon: TrendingUpIcon,
+          title: `💰 High Cost Trip`,
+          description: `${vehicle.name || 'Unknown Vehicle'} - ${trip.startLocation || 'N/A'} to ${trip.endLocation || 'N/A'}`,
+          timestamp: `Cost: ₹${(trip.actualOperationalCost || 0).toLocaleString('en-IN')}`,
+          severity: 'warning',
+        });
+      }
+    });
+
+  return activities.slice(0, 5);
+};
 
 // KPI Card Component
 const KPICard = ({ title, value, icon: Icon, color, subtitle }) => {
@@ -108,112 +556,25 @@ const Dashboard = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Mock data - Fleet Manager KPIs (default/comprehensive)
-  const fleetManagerKPIs = [
-    {
-      title: 'Total Vehicles',
-      value: '245',
-      icon: DirectionsCarIcon,
-      color: theme.palette.primary.main,
-      subtitle: '12 in maintenance',
-    },
-    {
-      title: 'Active Trips',
-      value: '18',
-      icon: RouteIcon,
-      color: theme.palette.success.main,
-      subtitle: 'On the road',
-    },
-    {
-      title: 'Total Drivers',
-      value: '156',
-      icon: PeopleIcon,
-      color: theme.palette.info.main,
-      subtitle: '145 active',
-    },
-    {
-      title: 'Fuel Consumed',
-      value: '2.45K L',
-      icon: FuelIcon,
-      color: theme.palette.warning.main,
-      subtitle: 'This month',
-    },
-  ];
+  // Calculate KPIs dynamically from mock data
+  const fleetManagerKPIs = calculateFleetManagerKPIs(theme);
+  const dispatcherKPIs = calculateDispatcherKPIs(theme);
+  const safetyOfficerKPIs = calculateSafetyOfficerKPIs(theme);
+  const financialAnalystKPIs = calculateFinancialAnalystKPIs(theme);
 
-  // Dispatcher KPIs
-  const dispatcherKPIs = [
-    {
-      title: 'Active Trips',
-      value: '18',
-      icon: RouteIcon,
-      color: theme.palette.success.main,
-      subtitle: 'On the road',
-    },
-    {
-      title: 'Available Vehicles',
-      value: '233',
-      icon: DirectionsCarIcon,
-      color: theme.palette.primary.main,
-      subtitle: '245 total',
-    },
-    {
-      title: 'Available Drivers',
-      value: '145',
-      icon: PeopleIcon,
-      color: theme.palette.info.main,
-      subtitle: '156 total',
-    },
-  ];
-
-  // Safety Officer KPIs
-  const safetyOfficerKPIs = [
-    {
-      title: 'Compliance Status',
-      value: '98%',
-      icon: CheckCircleIcon,
-      color: theme.palette.success.main,
-      subtitle: 'All drivers compliant',
-    },
-    {
-      title: 'License Expiries',
-      value: '3',
-      icon: WarningIcon,
-      color: theme.palette.warning.main,
-      subtitle: 'Next 30 days',
-    },
-    {
-      title: 'Vehicles Due for Service',
-      value: '12',
-      icon: DirectionsCarIcon,
-      color: theme.palette.error.main,
-      subtitle: 'Pending maintenance',
-    },
-  ];
-
-  // Financial Analyst KPIs
-  const financialAnalystKPIs = [
-    {
-      title: 'Total Fleet Cost',
-      value: '₹24.5L',
-      icon: TrendingUpIcon,
-      color: theme.palette.primary.main,
-      subtitle: 'This month',
-    },
-    {
-      title: 'Fuel Expenses',
-      value: '₹8.2L',
-      icon: FuelIcon,
-      color: theme.palette.warning.main,
-      subtitle: 'This month',
-    },
-    {
-      title: 'Maintenance Cost',
-      value: '₹5.1L',
-      icon: DirectionsCarIcon,
-      color: theme.palette.error.main,
-      subtitle: 'This month',
-    },
-  ];
+  // Calculate metrics for progress cards
+  const totalVehicles = mockVehicles.length;
+  const activeVehicles = mockVehicles.filter(v => v.status === 'active').length;
+  const completedTrips = mockTrips.filter(t => t.status === 'completed').length;
+  const totalTrips = mockTrips.length;
+  const totalDrivers = mockDrivers.length;
+  const expiredLicenses = mockDrivers.filter(d => new Date(d.licenseExpiry) < new Date()).length;
+  const compliantDrivers = totalDrivers - expiredLicenses;
+  const vehiclesInMaintenance = mockVehicles.filter(v => v.status === 'out of service').length;
+  const maintenanceCompliantVehicles = totalVehicles - vehiclesInMaintenance;
+  const totalExpenses = mockExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const maxBudget = 3500000; // Rs 35L budget
+  const budgetUtilization = (totalExpenses / maxBudget) * 100;
 
   // Select KPIs based on user role
   let displayedKPIs = fleetManagerKPIs;
@@ -271,16 +632,16 @@ const Dashboard = () => {
           <Grid item xs={12} md={6}>
             <ProgressCard
               title="Vehicle Utilization"
-              value={180}
-              total={245}
+              value={activeVehicles}
+              total={totalVehicles}
               color={theme.palette.primary.main}
             />
           </Grid>
           <Grid item xs={12} md={6}>
             <ProgressCard
               title="Trip Completion Rate"
-              value={1200}
-              total={1245}
+              value={completedTrips}
+              total={totalTrips}
               color={theme.palette.success.main}
             />
           </Grid>
@@ -292,16 +653,16 @@ const Dashboard = () => {
           <Grid item xs={12} md={6}>
             <ProgressCard
               title="Daily Trips Completed"
-              value={14}
-              total={18}
+              value={Math.floor(completedTrips * 0.7)}
+              total={Math.floor(totalTrips * 0.8)}
               color={theme.palette.success.main}
             />
           </Grid>
           <Grid item xs={12} md={6}>
             <ProgressCard
               title="Fleet Availability"
-              value={233}
-              total={245}
+              value={activeVehicles}
+              total={totalVehicles}
               color={theme.palette.primary.main}
             />
           </Grid>
@@ -313,16 +674,16 @@ const Dashboard = () => {
           <Grid item xs={12} md={6}>
             <ProgressCard
               title="License Compliance"
-              value={153}
-              total={156}
+              value={compliantDrivers}
+              total={totalDrivers}
               color={theme.palette.success.main}
             />
           </Grid>
           <Grid item xs={12} md={6}>
             <ProgressCard
               title="Maintenance Compliance"
-              value={233}
-              total={245}
+              value={maintenanceCompliantVehicles}
+              total={totalVehicles}
               color={theme.palette.info.main}
             />
           </Grid>
@@ -334,15 +695,15 @@ const Dashboard = () => {
           <Grid item xs={12} md={6}>
             <ProgressCard
               title="Budget Utilization"
-              value={24.5}
-              total={35}
+              value={budgetUtilization.toFixed(1)}
+              total={100}
               color={theme.palette.warning.main}
             />
           </Grid>
           <Grid item xs={12} md={6}>
             <ProgressCard
               title="Cost Control"
-              value={85}
+              value={Math.min(100, 100 - budgetUtilization.toFixed(1))}
               total={100}
               color={theme.palette.success.main}
             />
@@ -353,17 +714,77 @@ const Dashboard = () => {
       {/* Recent Activity Section */}
       <Card>
         <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            Recent Activity
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+            📋 Recent Activity
           </Typography>
-          <Box sx={{ minHeight: '200px' }}>
-            <Typography color="textSecondary" align="center" sx={{ py: 4 }}>
-              {can.isAdmin() && 'Fleet overview and recent trips/maintenance will appear here.'}
-              {can.isDispatcher() && 'Active trips and driver assignments will appear here.'}
-              {can.isSafetyOfficer() && 'Compliance alerts and license expirations will appear here.'}
-              {can.isFinancialAnalyst() && 'Cost trends and expense analytics will appear here.'}
-            </Typography>
-          </Box>
+
+          {/* Fleet Manager View - Recent Trips & Maintenance */}
+          {can.isAdmin() && (
+            <Box>
+              {generateFleetManagerActivities().length > 0 ? (
+                <Stack spacing={0}>
+                  {generateFleetManagerActivities().map((activity) => (
+                    <ActivityItem key={activity.id} {...activity} />
+                  ))}
+                </Stack>
+              ) : (
+                <Typography color="textSecondary" align="center" sx={{ py: 4 }}>
+                  No recent activity available
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {/* Dispatcher View - Active Trips & Assignments */}
+          {can.isDispatcher() && (
+            <Box>
+              {generateDispatcherActivities().length > 0 ? (
+                <Stack spacing={0}>
+                  {generateDispatcherActivities().map((activity) => (
+                    <ActivityItem key={activity.id} {...activity} />
+                  ))}
+                </Stack>
+              ) : (
+                <Typography color="textSecondary" align="center" sx={{ py: 4 }}>
+                  All trips completed. No active trips at the moment.
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {/* Safety Officer View - Compliance Alerts */}
+          {can.isSafetyOfficer() && (
+            <Box>
+              {generateSafetyOfficerActivities().length > 0 ? (
+                <Stack spacing={0}>
+                  {generateSafetyOfficerActivities().map((activity) => (
+                    <ActivityItem key={activity.id} {...activity} />
+                  ))}
+                </Stack>
+              ) : (
+                <Typography color="textSecondary" align="center" sx={{ py: 4 }}>
+                  All compliance checks passed. No alerts.
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {/* Financial Analyst View - Cost Updates */}
+          {can.isFinancialAnalyst() && (
+            <Box>
+              {generateFinancialAnalystActivities().length > 0 ? (
+                <Stack spacing={0}>
+                  {generateFinancialAnalystActivities().map((activity) => (
+                    <ActivityItem key={activity.id} {...activity} />
+                  ))}
+                </Stack>
+              ) : (
+                <Typography color="textSecondary" align="center" sx={{ py: 4 }}>
+                  No recent cost updates available.
+                </Typography>
+              )}
+            </Box>
+          )}
         </CardContent>
       </Card>
     </MainLayout>
