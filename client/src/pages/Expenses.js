@@ -2,6 +2,7 @@
  * Expenses Page - Expense Tracking and Management Module
  * Features: Track expenses, create records, edit, delete, with full CRUD operations
  * Added: Search, Filters, and Grouping functionality
+ * RBAC: Only Fleet Manager can create/edit/delete (Financial Analyst can view only)
  */
 
 import { useState, useEffect } from 'react';
@@ -31,6 +32,7 @@ import {
   InputLabel,
   Grid,
   InputAdornment,
+  Alert,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -38,15 +40,18 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
+import LockIcon from '@mui/icons-material/Lock';
 import MainLayout from '../components/MainLayout';
 import ExpenseFormModal from '../components/ExpenseFormModal';
 import ExpenseViewModal from '../components/ExpenseViewModal';
 import { useApp } from '../hooks/useApp';
+import { usePermission } from '../hooks/usePermission';
 import { expensesAPI } from '../services/api';
 import { mockVehicles } from '../services/mockData';
 
 const Expenses = () => {
   const { showNotification } = useApp();
+  const { can } = usePermission();
 
   // State Management
   const [expenseRecords, setExpenseRecords] = useState([]);
@@ -87,12 +92,20 @@ const Expenses = () => {
 
   // Handle Create
   const handleOpenCreateModal = () => {
+    if (!can.create('expenses')) {
+      showNotification('You do not have permission to create expenses', 'error');
+      return;
+    }
     setSelectedRecord(null);
     setFormModalOpen(true);
   };
 
   // Handle Edit
   const handleOpenEditModal = (record) => {
+    if (!can.update('expenses')) {
+      showNotification('You do not have permission to edit expenses', 'error');
+      return;
+    }
     setSelectedRecord(record);
     setFormModalOpen(true);
   };
@@ -110,6 +123,10 @@ const Expenses = () => {
 
       if (selectedRecord) {
         // Update existing record
+        if (!can.update('expenses')) {
+          showNotification('You do not have permission to edit expenses', 'error');
+          return;
+        }
         const response = await expensesAPI.update(selectedRecord.id, formData);
         if (response.success) {
           showNotification('Expense record updated successfully', 'success');
@@ -118,6 +135,10 @@ const Expenses = () => {
         }
       } else {
         // Create new record
+        if (!can.create('expenses')) {
+          showNotification('You do not have permission to create expenses', 'error');
+          return;
+        }
         const response = await expensesAPI.create(formData);
         if (response.success) {
           showNotification('Expense added successfully', 'success');
@@ -134,6 +155,10 @@ const Expenses = () => {
 
   // Handle Delete - Open Confirmation Dialog
   const handleOpenDeleteDialog = (record) => {
+    if (!can.delete('expenses')) {
+      showNotification('You do not have permission to delete expenses', 'error');
+      return;
+    }
     setSelectedRecord(record);
     setDeleteDialogOpen(true);
   };
@@ -142,6 +167,10 @@ const Expenses = () => {
   const handleConfirmDelete = async () => {
     try {
       setSubmitting(true);
+      if (!can.delete('expenses')) {
+        showNotification('You do not have permission to delete expenses', 'error');
+        return;
+      }
       const response = await expensesAPI.delete(selectedRecord.id);
       if (response.success) {
         showNotification('Expense record deleted successfully', 'success');
@@ -295,22 +324,43 @@ const Expenses = () => {
             Track and manage fleet expenses
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenCreateModal}
-          sx={{
-            backgroundColor: '#2196F3',
-            textTransform: 'none',
-            fontWeight: 600,
-            '&:hover': {
-              backgroundColor: '#1976D2',
-            },
-          }}
-        >
-          Add Expense
-        </Button>
+        {can.create('expenses') ? (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenCreateModal}
+            sx={{
+              backgroundColor: '#2196F3',
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': {
+                backgroundColor: '#1976D2',
+              },
+            }}
+          >
+            Add Expense
+          </Button>
+        ) : (
+          <Button
+            variant="contained"
+            disabled
+            startIcon={<LockIcon />}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+            }}
+          >
+            Read-Only Mode
+          </Button>
+        )}
       </Box>
+
+      {/* Permission Alert for Non-Creators */}
+      {!can.create('expenses') && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          You have read-only access to expenses. Only Fleet Managers can create, edit, or delete expense records.
+        </Alert>
+      )}
 
       {/* Search and Filter Section */}
       <Paper
@@ -591,23 +641,27 @@ const Expenses = () => {
                             >
                               <VisibilityIcon fontSize="small" />
                             </IconButton>
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleOpenEditModal(record)}
-                              title="Edit"
-                              sx={{ color: '#2196F3' }}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleOpenDeleteDialog(record)}
-                              title="Delete"
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
+                            {can.update('expenses') && (
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleOpenEditModal(record)}
+                                title="Edit"
+                                sx={{ color: '#2196F3' }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            )}
+                            {can.delete('expenses') && (
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleOpenDeleteDialog(record)}
+                                title="Delete"
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}

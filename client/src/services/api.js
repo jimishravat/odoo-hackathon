@@ -1,6 +1,7 @@
 /**
  * Centralized API Service Layer - MOCK VERSION (Development)
  * Using static/mock data instead of real API calls
+ * Now includes RBAC support with role-based permissions
  */
 
 import {
@@ -15,6 +16,9 @@ import {
   mockDashboardData,
   simulateDelay,
 } from './mockData';
+
+// Import ROLE_PERMISSIONS from AuthContext
+import { ROLE_PERMISSIONS } from '../contexts/AuthContext';
 
 // Simulate API delay for realistic behavior
 const API_DELAY = 500;
@@ -41,6 +45,8 @@ export const authAPI = {
     }
 
     const token = `mock-token-${user.id}-${Date.now()}`;
+    const rolePermissions = ROLE_PERMISSIONS[user.role] || {};
+
     return {
       success: true,
       data: {
@@ -52,6 +58,8 @@ export const authAPI = {
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          department: user.department,
+          permissions: rolePermissions,
         },
       },
     };
@@ -73,6 +81,8 @@ export const authAPI = {
     
     // Find user from mock data (using first user as default)
     const user = mockUsers[0];
+    const rolePermissions = ROLE_PERMISSIONS[user.role] || {};
+
     return {
       success: true,
       data: {
@@ -81,6 +91,8 @@ export const authAPI = {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        department: user.department,
+        permissions: rolePermissions,
       },
     };
   },

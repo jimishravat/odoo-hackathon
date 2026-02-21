@@ -30,15 +30,15 @@ import { useAuth } from '../hooks/useAuth';
 import { ROUTES } from '../constants';
 
 const MENU_ITEMS = [
-  { label: 'Dashboard', icon: DashboardIcon, path: ROUTES.DASHBOARD },
-  { label: 'Vehicles', icon: DirectionsCarIcon, path: ROUTES.VEHICLES },
-  { label: 'Drivers', icon: PeopleIcon, path: ROUTES.DRIVERS },
-  { label: 'Trips', icon: RouteIcon, path: ROUTES.TRIPS },
-  { label: 'Maintenance', icon: BuildIcon, path: ROUTES.MAINTENANCE },
-  { label: 'Fuel Management', icon: LocalGasStationIcon, path: ROUTES.FUEL },
-  { label: 'Expenses', icon: ReceiptIcon, path: ROUTES.EXPENSES },
-  { label: 'Reports', icon: AssessmentIcon, path: ROUTES.REPORTS },
-  { label: 'Settings', icon: SettingsIcon, path: ROUTES.SETTINGS },
+  { label: 'Dashboard', icon: DashboardIcon, path: ROUTES.DASHBOARD, roles: ['fleet_manager', 'dispatcher', 'safety_officer', 'financial_analyst'] },
+  { label: 'Vehicles', icon: DirectionsCarIcon, path: ROUTES.VEHICLES, roles: ['fleet_manager', 'dispatcher', 'safety_officer', 'financial_analyst'] },
+  { label: 'Drivers', icon: PeopleIcon, path: ROUTES.DRIVERS, roles: ['fleet_manager', 'dispatcher', 'safety_officer'] },
+  { label: 'Trips', icon: RouteIcon, path: ROUTES.TRIPS, roles: ['fleet_manager', 'dispatcher'] },
+  { label: 'Maintenance', icon: BuildIcon, path: ROUTES.MAINTENANCE, roles: ['fleet_manager', 'safety_officer', 'financial_analyst'] },
+  { label: 'Fuel Management', icon: LocalGasStationIcon, path: ROUTES.FUEL, roles: ['fleet_manager', 'financial_analyst'] },
+  { label: 'Expenses', icon: ReceiptIcon, path: ROUTES.EXPENSES, roles: ['fleet_manager', 'financial_analyst'] },
+  { label: 'Reports', icon: AssessmentIcon, path: ROUTES.REPORTS, roles: ['fleet_manager', 'safety_officer', 'financial_analyst'] },
+  { label: 'Settings', icon: SettingsIcon, path: ROUTES.SETTINGS, roles: ['fleet_manager', 'dispatcher', 'safety_officer', 'financial_analyst'] },
 ];
 
 const Sidebar = () => {
@@ -118,7 +118,7 @@ const Sidebar = () => {
 
       {/* Menu Items */}
       <List sx={{ flex: 1, overflow: 'auto' }}>
-        {MENU_ITEMS.map((item) => {
+        {MENU_ITEMS.filter(item => item.roles.includes(user?.role)).map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
 

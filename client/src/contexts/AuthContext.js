@@ -1,12 +1,63 @@
 /**
  * Auth Context - Manages authentication state globally
- * Handles login, logout, and user data
+ * Handles login, logout, user data, and RBAC permissions
  */
 
 import { createContext, useCallback, useEffect, useState } from 'react';
 import { authAPI } from '../services/api';
 
 export const AuthContext = createContext();
+
+/**
+ * Role-Based Access Control (RBAC) Permissions Matrix
+ * Defines what each role can do for each module
+ */
+export const ROLE_PERMISSIONS = {
+  fleet_manager: {
+    dashboard: ['read', 'write'],
+    vehicles: ['create', 'read', 'update', 'delete'],
+    drivers: ['create', 'read', 'update', 'delete'],
+    trips: ['create', 'read', 'update', 'delete'],
+    maintenance: ['create', 'read', 'update', 'delete'],
+    fuel: ['create', 'read', 'update', 'delete'],
+    expenses: ['create', 'read', 'update', 'delete'],
+    reports: ['read'],
+    settings: ['read', 'write', 'admin'],
+  },
+  dispatcher: {
+    dashboard: ['read'],
+    vehicles: ['read'],
+    drivers: ['read', 'update'],
+    trips: ['create', 'read', 'update'],
+    maintenance: [],
+    fuel: [],
+    expenses: [],
+    reports: [],
+    settings: ['update_profile'],
+  },
+  safety_officer: {
+    dashboard: ['read'],
+    vehicles: ['read'],
+    drivers: ['read', 'update'],
+    trips: [],
+    maintenance: ['read', 'update'],
+    fuel: [],
+    expenses: [],
+    reports: ['read'],
+    settings: ['read_audit', 'update_profile'],
+  },
+  financial_analyst: {
+    dashboard: ['read'],
+    vehicles: ['read'],
+    drivers: [],
+    trips: ['read'],
+    maintenance: ['read'],
+    fuel: ['read'],
+    expenses: ['read'],
+    reports: ['read'],
+    settings: ['update_profile'],
+  },
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -102,6 +153,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     register,
+    ROLE_PERMISSIONS,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

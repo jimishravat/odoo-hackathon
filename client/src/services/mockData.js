@@ -3,40 +3,55 @@
  * All static data for the application when backend is not available
  */
 
-// Mock Users
+// Mock Users - RBAC Compliant Users
 export const mockUsers = [
   {
     id: 1,
-    email: 'admin@fleetflow.com',
-    password: 'admin123', // Mock password for demo
-    firstName: 'Admin',
-    lastName: 'User',
-    role: 'admin',
+    email: 'fm@fleetflow.com',
+    password: 'fm123',
+    firstName: 'Rajendra',
+    lastName: 'Singh',
+    role: 'fleet_manager',
     phone: '9876543210',
-    address: '123 Main St, City',
+    address: '123 Main St, Mumbai',
     createdAt: '2024-01-01',
+    department: 'Operations',
   },
   {
     id: 2,
-    email: 'manager@fleetflow.com',
-    password: 'manager123',
-    firstName: 'John',
-    lastName: 'Manager',
-    role: 'manager',
+    email: 'dispatcher@fleetflow.com',
+    password: 'dispatcher123',
+    firstName: 'Vikram',
+    lastName: 'Patel',
+    role: 'dispatcher',
     phone: '9876543211',
-    address: '456 Oak Ave, City',
+    address: '456 Oak Ave, Pune',
     createdAt: '2024-01-05',
+    department: 'Operations',
   },
   {
     id: 3,
-    email: 'driver@fleetflow.com',
-    password: 'driver123',
-    firstName: 'Michael',
-    lastName: 'Driver',
-    role: 'driver',
+    email: 'safety@fleetflow.com',
+    password: 'safety123',
+    firstName: 'Neha',
+    lastName: 'Sharma',
+    role: 'safety_officer',
     phone: '9876543212',
-    address: '789 Pine Rd, City',
+    address: '789 Pine Rd, Bangalore',
     createdAt: '2024-01-10',
+    department: 'Safety & Compliance',
+  },
+  {
+    id: 4,
+    email: 'analyst@fleetflow.com',
+    password: 'analyst123',
+    firstName: 'Arjun',
+    lastName: 'Gupta',
+    role: 'financial_analyst',
+    phone: '9876543213',
+    address: '321 Elm St, Delhi',
+    createdAt: '2024-01-15',
+    department: 'Finance',
   },
 ];
 
@@ -273,20 +288,53 @@ export const mockFuel = [
   },
 ];
 
-// Mock Expenses
+// Mock Expenses - SYNCED with Fuel Records
 export const mockExpenses = [
+  // Synced from Fuel Record 1
   {
     id: 1,
     date: '2024-02-20',
     category: 'Fuel',
     amount: 4322.5,
     vehicle: 1,
-    description: 'Diesel fuel refill',
+    description: 'Diesel fuel refill - 45.5L at Mumbai Fuel Station',
     receipt: 'FUEL-001',
     status: 'approved',
+    sourceType: 'fuel',
+    sourceId: 1,
+    notes: 'Fuel Type: diesel, Price: ₹95/L, Mileage: 45000',
   },
+  // Synced from Fuel Record 2
   {
     id: 2,
+    date: '2024-02-20',
+    category: 'Fuel',
+    amount: 5460,
+    vehicle: 2,
+    description: 'Petrol fuel refill - 52.0L at Pune Fuel Station',
+    receipt: 'FUEL-002',
+    status: 'approved',
+    sourceType: 'fuel',
+    sourceId: 2,
+    notes: 'Fuel Type: petrol, Price: ₹105/L, Mileage: 32000',
+  },
+  // Synced from Fuel Record 3
+  {
+    id: 3,
+    date: '2024-02-19',
+    category: 'Fuel',
+    amount: 4560,
+    vehicle: 1,
+    description: 'Diesel fuel refill - 48.0L at Mumbai Fuel Station',
+    receipt: 'FUEL-003',
+    status: 'approved',
+    sourceType: 'fuel',
+    sourceId: 3,
+    notes: 'Fuel Type: diesel, Price: ₹95/L, Mileage: 44920',
+  },
+  // Other Expenses
+  {
+    id: 4,
     date: '2024-02-20',
     category: 'Maintenance',
     amount: 5000,
@@ -294,9 +342,11 @@ export const mockExpenses = [
     description: 'Regular service',
     receipt: 'MAINT-001',
     status: 'approved',
+    sourceType: 'maintenance',
+    sourceId: 1,
   },
   {
-    id: 3,
+    id: 5,
     date: '2024-02-21',
     category: 'Toll',
     amount: 450,
@@ -304,6 +354,7 @@ export const mockExpenses = [
     description: 'Toll charges',
     receipt: 'TOLL-001',
     status: 'pending',
+    sourceType: 'other',
   },
 ];
 

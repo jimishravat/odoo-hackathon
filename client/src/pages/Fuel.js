@@ -48,6 +48,10 @@ import FuelViewModal from '../components/FuelViewModal';
 import { fuelAPI } from '../services/api';
 import { mockVehicles } from '../services/mockData';
 import { useApp } from '../hooks/useApp';
+import {
+  createExpenseFromFuel,
+  validateFuelDataForSync,
+} from '../utils/fuelExpenseSync';
 
 const Fuel = () => {
   // State management
@@ -202,13 +206,31 @@ const Fuel = () => {
   const handleFormSubmit = async (formData) => {
     try {
       setLoading(true);
+      
       if (editingFuel) {
+        // Update fuel record
         await fuelAPI.update(editingFuel.id, formData);
         showNotification('Fuel entry updated successfully', 'success');
       } else {
-        await fuelAPI.create(formData);
-        showNotification('Fuel entry created successfully', 'success');
+        // Create new fuel record
+        const createResponse = await fuelAPI.create(formData);
+        const newFuelRecord = createResponse.data;
+
+        // Validate fuel data for sync
+        const validation = validateFuelDataForSync(newFuelRecord);
+        if (validation.isValid) {
+          // Sync fuel to expenses automatically
+          const expenseSync = await createExpenseFromFuel(newFuelRecord);
+          if (expenseSync.success) {
+            showNotification('Fuel entry created and synced to Expenses', 'success');
+          } else {
+            showNotification('Fuel entry created but failed to sync to Expenses', 'warning');
+          }
+        } else {
+          showNotification('Fuel entry created but failed to sync to Expenses (missing fields)', 'warning');
+        }
       }
+      
       setFormModalOpen(false);
       setEditingFuel(null);
       await loadFuelRecords();
