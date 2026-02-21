@@ -21,7 +21,7 @@ import {
   Typography,
   Alert,
 } from '@mui/material';
-import { validateTripAssignment, validateVehicleAvailability, validateDriverLicense, validateCargoCapacity, getLicenseExpiryStatus } from '../utils/validationUtils';
+import { validateTripAssignment, validateVehicleAvailability, validateDriverLicense, validateCargoCapacity, getLicenseExpiryStatus, checkTripAssignmentAvailability } from '../utils/validationUtils';
 
 const TripFormModal = ({
   open,
@@ -30,6 +30,7 @@ const TripFormModal = ({
   initialData = null,
   vehicles = [],
   drivers = [],
+  trips = [],
   loading = false,
 }) => {
   const [formData, setFormData] = useState({
@@ -263,6 +264,25 @@ const TripFormModal = ({
     const vehicle = vehicles.find(v => v.id === parseInt(formData.vehicle));
 
     const alerts = [];
+
+    // Check if driver and vehicle are already assigned to active trips
+    if (driver && vehicle && trips.length > 0) {
+      const availabilityCheck = checkTripAssignmentAvailability(
+        parseInt(formData.driver),
+        parseInt(formData.vehicle),
+        trips,
+        initialData?.id // Exclude current trip if editing
+      );
+      
+      if (!availabilityCheck.isAvailable) {
+        availabilityCheck.errors.forEach(error => {
+          alerts.push({
+            type: 'error',
+            message: error,
+          });
+        });
+      }
+    }
 
     // Check cargo capacity
     if (vehicle && formData.load) {

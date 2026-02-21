@@ -513,5 +513,194 @@ export const mockDashboardData = {
   },
 };
 
+// ==================== OPERATIONAL ANALYTICS DATA ====================
+
+/**
+ * Vehicle Operational Analytics
+ * Includes Fuel Efficiency (km/L) and ROI calculations
+ * Formula: ROI = (Revenue - (Maintenance + Fuel)) / Acquisition Cost × 100
+ */
+export const mockVehicleAnalytics = [
+  {
+    id: 1,
+    name: 'Truck-001',
+    type: 'Truck',
+    acquisitionCost: 800000, // Purchase price
+    mileageStart: 45000,
+    mileageEnd: 45148.5,
+    totalDistance: 148.5,
+    fuelConsumed: 45.5, // Liters
+    fuelEfficiency: 3.26, // km/L (148.5 / 45.5)
+    fuelCost: 4322.5, // Rs 95 × 45.5L
+    maintenanceCost: 5000,
+    revenue: 15000, // From trips
+    totalTrips: 125,
+    status: 'active',
+    lastUpdated: '2024-02-20',
+  },
+  {
+    id: 2,
+    name: 'Van-002',
+    type: 'Van',
+    acquisitionCost: 600000,
+    mileageStart: 32000,
+    mileageEnd: 32312,
+    totalDistance: 312.0,
+    fuelConsumed: 52.0,
+    fuelEfficiency: 6.0, // km/L (312 / 52)
+    fuelCost: 5460, // Rs 105 × 52L
+    maintenanceCost: 8000,
+    revenue: 18500,
+    totalTrips: 98,
+    status: 'out of service',
+    lastUpdated: '2024-02-21',
+  },
+  {
+    id: 3,
+    name: 'Car-003',
+    type: 'Car',
+    acquisitionCost: 400000,
+    mileageStart: 28000,
+    mileageEnd: 28245,
+    totalDistance: 245.0,
+    fuelConsumed: 22.0,
+    fuelEfficiency: 11.14, // km/L (245 / 22)
+    fuelCost: 1980, // Rs 90 × 22L
+    maintenanceCost: 2500,
+    revenue: 8900,
+    totalTrips: 156,
+    status: 'in shop',
+    lastUpdated: '2024-02-21',
+  },
+];
+
+/**
+ * Calculate Vehicle ROI
+ * Formula: (Revenue - (Maintenance + Fuel)) / Acquisition Cost × 100
+ * 
+ * @param {number} revenue - Total revenue from vehicle operations
+ * @param {number} fuelCost - Total fuel expenses
+ * @param {number} maintenanceCost - Total maintenance expenses
+ * @param {number} acquisitionCost - Original purchase cost
+ * @returns {number} ROI percentage
+ */
+export const calculateVehicleROI = (revenue, fuelCost, maintenanceCost, acquisitionCost) => {
+  const netProfit = revenue - (fuelCost + maintenanceCost);
+  return (netProfit / acquisitionCost) * 100;
+};
+
+/**
+ * Monthly Financial Summary for Payroll & Health Audits
+ * Comprehensive breakdown of revenue, costs, and profitability
+ */
+export const mockMonthlyFinancialSummary = [
+  {
+    month: 'January',
+    year: 2024,
+    totalRevenue: 780000,
+    fuelCost: 199500,
+    maintenanceCost: 75000,
+    tollCost: 25000,
+    insuranceCost: 45000,
+    parkingCost: 12000,
+    otherCost: 8500,
+    totalExpenses: 365000,
+    netProfit: 415000,
+    profitMargin: 53.2,
+    vehiclesOperating: 238,
+    tripsCompleted: 1145,
+    avgFuelEfficiency: 7.8,
+  },
+  {
+    month: 'February',
+    year: 2024,
+    totalRevenue: 820000,
+    fuelCost: 213750,
+    maintenanceCost: 85000,
+    tollCost: 28000,
+    insuranceCost: 45000,
+    parkingCost: 13500,
+    otherCost: 9250,
+    totalExpenses: 394500,
+    netProfit: 425500,
+    profitMargin: 51.9,
+    vehiclesOperating: 241,
+    tripsCompleted: 1189,
+    avgFuelEfficiency: 7.9,
+  },
+  {
+    month: 'March',
+    year: 2024,
+    totalRevenue: 860000,
+    fuelCost: 228000,
+    maintenanceCost: 92000,
+    tollCost: 30500,
+    insuranceCost: 45000,
+    parkingCost: 14200,
+    otherCost: 10100,
+    totalExpenses: 419800,
+    netProfit: 440200,
+    profitMargin: 51.2,
+    vehiclesOperating: 243,
+    tripsCompleted: 1234,
+    avgFuelEfficiency: 8.1,
+  },
+];
+
+/**
+ * Fuel Efficiency Report by Vehicle Category
+ * Tracks km/L performance and trends
+ */
+export const mockFuelEfficiencyReport = [
+  {
+    category: 'Truck',
+    vehicles: 45,
+    avgEfficiency: 5.2, // km/L
+    targetEfficiency: 5.5,
+    totalDistance: 125000,
+    totalFuelConsumed: 24038,
+    status: 'Below Target',
+    trend: -0.3,
+  },
+  {
+    category: 'Van',
+    vehicles: 85,
+    avgEfficiency: 7.8,
+    targetEfficiency: 8.0,
+    totalDistance: 185000,
+    totalFuelConsumed: 23718,
+    status: 'On Target',
+    trend: 0.2,
+  },
+  {
+    category: 'Car',
+    vehicles: 115,
+    vehicles: 115,
+    avgEfficiency: 11.5,
+    targetEfficiency: 11.0,
+    totalDistance: 212000,
+    totalFuelConsumed: 18435,
+    status: 'Exceeding Target',
+    trend: 0.5,
+  },
+];
+
+/**
+ * Cost Breakdown Report
+ * Detailed expense analysis for audits
+ */
+export const mockCostBreakdownReport = {
+  period: 'January 2024',
+  totalSpent: 365000,
+  breakdown: [
+    { category: 'Fuel', amount: 199500, percentage: 54.7 },
+    { category: 'Maintenance', amount: 75000, percentage: 20.5 },
+    { category: 'Insurance', amount: 45000, percentage: 12.3 },
+    { category: 'Toll', amount: 25000, percentage: 6.8 },
+    { category: 'Parking', amount: 12000, percentage: 3.3 },
+    { category: 'Other', amount: 8500, percentage: 2.3 },
+  ],
+};
+
 // Helper function to simulate API delay
 export const simulateDelay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));

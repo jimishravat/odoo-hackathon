@@ -481,6 +481,93 @@ export const validateCargoCapacity = (vehicle, cargoLoad) => {
   };
 };
 
+/**
+ * Check if driver is already assigned to another active trip
+ * @param {number} driverId - Driver ID to check
+ * @param {Array} trips - List of all trips
+ * @param {string} excludeTripId - Trip ID to exclude from check (for editing)
+ * @returns {Object} { isAssigned: boolean, assignedTrip: Object|null, message: string }
+ */
+export const checkDriverAvailability = (driverId, trips, excludeTripId = null) => {
+  if (!driverId || !trips || trips.length === 0) {
+    return { isAssigned: false, assignedTrip: null, message: '' };
+  }
+
+  // Check for active trips (scheduled or in-progress) with this driver
+  const assignedTrip = trips.find(trip => 
+    trip.driver === driverId && 
+    trip.id !== excludeTripId &&
+    (trip.status === 'scheduled' || trip.status === 'in-progress')
+  );
+
+  if (assignedTrip) {
+    return {
+      isAssigned: true,
+      assignedTrip: assignedTrip,
+      message: `Driver is already assigned to trip `,
+    };
+  }
+
+  return { isAssigned: false, assignedTrip: null, message: '' };
+};
+
+/**
+ * Check if vehicle is already assigned to another active trip
+ * @param {number} vehicleId - Vehicle ID to check
+ * @param {Array} trips - List of all trips
+ * @param {string} excludeTripId - Trip ID to exclude from check (for editing)
+ * @returns {Object} { isAssigned: boolean, assignedTrip: Object|null, message: string }
+ */
+export const checkVehicleAvailability = (vehicleId, trips, excludeTripId = null) => {
+  if (!vehicleId || !trips || trips.length === 0) {
+    return { isAssigned: false, assignedTrip: null, message: '' };
+  }
+
+  // Check for active trips (scheduled or in-progress) with this vehicle
+  const assignedTrip = trips.find(trip => 
+    trip.vehicle === vehicleId && 
+    trip.id !== excludeTripId &&
+    (trip.status === 'scheduled' || trip.status === 'in-progress')
+  );
+
+  if (assignedTrip) {
+    return {
+      isAssigned: true,
+      assignedTrip: assignedTrip,
+      message: `Vehicle is already assigned to trip `,
+    };
+  }
+
+  return { isAssigned: false, assignedTrip: null, message: '' };
+};
+
+/**
+ * Check if both driver and vehicle are available for new trip
+ * @param {number} driverId - Driver ID
+ * @param {number} vehicleId - Vehicle ID
+ * @param {Array} trips - List of all trips
+ * @param {string} excludeTripId - Trip ID to exclude from check (for editing)
+ * @returns {Object} { isAvailable: boolean, errors: string[] }
+ */
+export const checkTripAssignmentAvailability = (driverId, vehicleId, trips, excludeTripId = null) => {
+  const errors = [];
+
+  const driverCheck = checkDriverAvailability(driverId, trips, excludeTripId);
+  if (driverCheck.isAssigned) {
+    errors.push(driverCheck.message);
+  }
+
+  const vehicleCheck = checkVehicleAvailability(vehicleId, trips, excludeTripId);
+  if (vehicleCheck.isAssigned) {
+    errors.push(vehicleCheck.message);
+  }
+
+  return {
+    isAvailable: errors.length === 0,
+    errors: errors,
+  };
+};
+
 export default {
   validateDriverLicense,
   validateVehicleAvailability,
@@ -492,4 +579,7 @@ export default {
   getAvailableDrivers,
   getLicenseExpiryStatus,
   checkMaintenanceNeeds,
+  checkDriverAvailability,
+  checkVehicleAvailability,
+  checkTripAssignmentAvailability,
 };

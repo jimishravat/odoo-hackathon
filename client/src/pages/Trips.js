@@ -1066,6 +1066,7 @@ const Trips = () => {
           initialData={editingTrip}
           vehicles={mockVehicles}
           drivers={mockDrivers}
+          trips={trips}
           loading={loading}
         />
       ) : null}
