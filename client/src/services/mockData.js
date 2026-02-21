@@ -1,10 +1,18 @@
 /**
  * Mock Data for Development
  * All static data for the application when backend is not available
+ * 
+ * PERSISTENCE: Data is now persisted using localStorage
+ * - Initial data loaded from JSON file
+ * - Changes persist across page refreshes and browser restarts
+ * - Can be reset to initial state anytime
  */
 
+import { loadFromStorage, STORAGE_KEYS } from '../utils/storageManager';
+
 // Mock Users - RBAC Compliant Users
-export const mockUsers = [
+// Persisted in localStorage with key: fleetflow_users
+export let mockUsers = loadFromStorage(STORAGE_KEYS.USERS, [
   {
     id: 1,
     email: 'fm@fleetflow.com',
@@ -53,10 +61,10 @@ export const mockUsers = [
     createdAt: '2024-01-15',
     department: 'Finance',
   },
-];
+]);
 
-// Mock Vehicles
-export const mockVehicles = [
+// Mock Vehicles - Persisted in localStorage with key: fleetflow_vehicles
+export let mockVehicles = loadFromStorage(STORAGE_KEYS.VEHICLES, [
   {
     id: 1,
     name: 'Truck-001',
@@ -83,7 +91,7 @@ export const mockVehicles = [
     fuelType: 'petrol',
     capacity: 2000,
     currentLoad: 1200,
-    status: 'active',
+    status: 'out of service',
     location: { lat: 19.0850, lng: 72.8950 },
     lastServiceDate: '2024-01-15',
     mileage: 32000,
@@ -100,7 +108,7 @@ export const mockVehicles = [
     fuelType: 'cng',
     capacity: 500,
     currentLoad: 300,
-    status: 'maintenance',
+    status: 'in shop',
     location: { lat: 19.0900, lng: 72.8700 },
     lastServiceDate: '2024-02-10',
     mileage: 28000,
@@ -108,10 +116,10 @@ export const mockVehicles = [
     purchaseDate: '2023-07-12',
     insuranceExpiry: '2025-07-12',
   },
-];
+]);
 
-// Mock Drivers
-export const mockDrivers = [
+// Mock Drivers - Persisted in localStorage with key: fleetflow_drivers
+export let mockDrivers = loadFromStorage(STORAGE_KEYS.DRIVERS, [
   {
     id: 1,
     name: 'Rajesh Kumar',
@@ -160,10 +168,10 @@ export const mockDrivers = [
     emergencyContact: '9876543223',
     dateOfBirth: '1988-11-05',
   },
-];
+]);
 
-// Mock Trips
-export const mockTrips = [
+// Mock Trips - Persisted in localStorage with key: fleetflow_trips
+export let mockTrips = loadFromStorage(STORAGE_KEYS.TRIPS, [
   {
     id: 1,
     tripNumber: 'TRIP-2024-001',
@@ -212,10 +220,10 @@ export const mockTrips = [
     rating: null,
     notes: 'Scheduled for tomorrow',
   },
-];
+]);
 
-// Mock Maintenance Records
-export const mockMaintenance = [
+// Mock Maintenance Records - Persisted in localStorage with key: fleetflow_maintenance
+export let mockMaintenance = loadFromStorage(STORAGE_KEYS.MAINTENANCE, [
   {
     id: 1,
     vehicle: 1,
@@ -249,10 +257,10 @@ export const mockMaintenance = [
     description: 'Replace all 4 tires',
     notes: 'Scheduled appointment',
   },
-];
+]);
 
-// Mock Fuel Records
-export const mockFuel = [
+// Mock Fuel Records - Persisted in localStorage with key: fleetflow_fuel
+export let mockFuel = loadFromStorage(STORAGE_KEYS.FUEL, [
   {
     id: 1,
     vehicle: 1,
@@ -286,10 +294,10 @@ export const mockFuel = [
     mileage: 44920,
     location: 'Mumbai Fuel Station',
   },
-];
+]);
 
-// Mock Expenses - SYNCED with Fuel Records
-export const mockExpenses = [
+// Mock Expenses - SYNCED with Fuel Records - Persisted in localStorage with key: fleetflow_expenses
+export let mockExpenses = loadFromStorage(STORAGE_KEYS.EXPENSES, [
   // Synced from Fuel Record 1
   {
     id: 1,
@@ -356,10 +364,10 @@ export const mockExpenses = [
     status: 'pending',
     sourceType: 'other',
   },
-];
+]);
 
 // Mock Alerts
-export const mockAlerts = [
+export let mockAlerts = loadFromStorage(STORAGE_KEYS.ALERTS, [
   {
     id: 1,
     type: 'warning',
@@ -387,7 +395,7 @@ export const mockAlerts = [
     createdAt: '2024-02-19',
     read: false,
   },
-];
+]);
 
 // Mock Dashboard Data
 export const mockDashboardData = {

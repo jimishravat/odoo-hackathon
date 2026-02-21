@@ -42,13 +42,9 @@ import { mockVehicles, simulateDelay } from '../services/mockData';
 
 const getStatusColor = (status) => {
   const colorMap = {
-    scheduled: 'info',
-    'in-progress': 'warning',
-    completed: 'success',
-    cancelled: 'error',
-    maintenance: 'warning',
     active: 'success',
-    retired: 'default',
+    'out of service': 'error',
+    'in shop': 'warning',
   };
   return colorMap[(status || '').toLowerCase()] || 'default';
 };
@@ -69,6 +65,7 @@ const AddVehicleDialog = ({ open, onClose, onSave }) => {
     initialOdometer: '',
     type: '',
     model: '',
+    status: 'active',
   });
 
   const handleChange = (key) => (e) => setForm((s) => ({ ...s, [key]: e.target.value }));
@@ -82,13 +79,13 @@ const AddVehicleDialog = ({ open, onClose, onSave }) => {
       mileage: Number(form.initialOdometer) || 0,
       type: form.type || 'Unknown',
       name: form.model,
-      status: 'active',
+      status: form.status || 'active',
     });
-    setForm({ licensePlate: '', capacity: '', initialOdometer: '', type: '', model: '' });
+    setForm({ licensePlate: '', capacity: '', initialOdometer: '', type: '', model: '', status: 'active' });
   };
 
   const handleCancel = () => {
-    setForm({ licensePlate: '', capacity: '', initialOdometer: '', type: '', model: '' });
+    setForm({ licensePlate: '', capacity: '', initialOdometer: '', type: '', model: '', status: 'active' });
     onClose();
   };
 
@@ -110,6 +107,14 @@ const AddVehicleDialog = ({ open, onClose, onSave }) => {
           </FormControl>
           <TextField label="Max Payload (kg)" value={form.capacity} onChange={handleChange('capacity')} type="number" fullWidth />
           <TextField label="Initial Odometer (km)" value={form.initialOdometer} onChange={handleChange('initialOdometer')} type="number" fullWidth />
+          <FormControl fullWidth>
+            <InputLabel>Status</InputLabel>
+            <Select value={form.status} label="Status" onChange={handleChange('status')}>
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="out of service">Out of Service</MenuItem>
+              <MenuItem value="in shop">In Shop</MenuItem>
+            </Select>
+          </FormControl>
         </Box>
       </DialogContent>
       <DialogActions>
@@ -202,6 +207,14 @@ const EditVehicleDialog = ({ open, onClose, data, onSave }) => {
           </FormControl>
           <TextField label="Max Payload (kg)" value={form.capacity || ''} onChange={handleChange('capacity')} type="number" fullWidth />
           <TextField label="Odometer (km)" value={form.mileage || ''} onChange={handleChange('mileage')} type="number" fullWidth />
+          <FormControl fullWidth>
+            <InputLabel>Status</InputLabel>
+            <Select value={form.status || ''} label="Status" onChange={handleChange('status')}>
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="out of service">Out of Service</MenuItem>
+              <MenuItem value="in shop">In Shop</MenuItem>
+            </Select>
+          </FormControl>
         </Box>
       </DialogContent>
       <DialogActions>
@@ -308,8 +321,8 @@ const Vehicles = () => {
     { id: 'licensePlate', label: 'Plate', width: 160 },
     { id: 'name', label: 'Model', width: 200 },
     { id: 'type', label: 'Type', width: 120 },
-    { id: 'capacity', label: 'Capacity', width: 120, render: (val) => val ?? '-' },
-    { id: 'mileage', label: 'Odometer', width: 120, render: (val) => val ?? '-' },
+    { id: 'capacity', label: 'Capacity (kg)', width: 120, render: (val) => val ? `${val} kg` : '-' },
+    { id: 'mileage', label: 'Odometer', width: 120, render: (val) => val ? `${val} km` : '-' },
     { id: 'status', label: 'Status', width: 120, render: (val) => val ?? '-' },
     { id: 'actions', label: 'Actions', width: 140, render: (val, row) => null },
   ];
@@ -367,9 +380,8 @@ const Vehicles = () => {
           const status = (val || '').toLowerCase();
           const map = {
             active: { color: 'success', label: 'Active' },
-            maintenance: { color: 'warning', label: 'In-progress' },
-            scheduled: { color: 'info', label: 'Scheduled' },
-            retired: { color: 'default', label: 'Retired' },
+            'out of service': { color: 'warning', label: 'Out of Service' },
+            'in shop': { color: 'error', label: 'In Shop' },
           };
           const cfg = map[status] || { color: 'default', label: val || '-' };
           return (
@@ -512,9 +524,8 @@ const Vehicles = () => {
               >
                 <MenuItem value="">All Status</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="maintenance">Maintenance</MenuItem>
-                <MenuItem value="scheduled">Scheduled</MenuItem>
-                <MenuItem value="retired">Retired</MenuItem>
+                <MenuItem value="out of service">Out of Service</MenuItem>
+                <MenuItem value="in shop">In Shop</MenuItem>
               </Select>
             </FormControl>
           </Grid>

@@ -1,7 +1,8 @@
 /**
  * Centralized API Service Layer - MOCK VERSION (Development)
- * Using static/mock data instead of real API calls
+ * Using localStorage-persisted mock data instead of real API calls
  * Now includes RBAC support with role-based permissions
+ * Data persists across sessions using browser localStorage
  */
 
 import {
@@ -16,6 +17,7 @@ import {
   mockDashboardData,
   simulateDelay,
 } from './mockData';
+import { saveToStorage, STORAGE_KEYS } from '../utils/storageManager';
 
 // Import ROLE_PERMISSIONS from AuthContext
 import { ROLE_PERMISSIONS } from '../contexts/AuthContext';
@@ -325,6 +327,7 @@ export const tripsAPI = {
     await simulateDelay(API_DELAY);
     const newTrip = { id: Date.now(), ...tripData };
     mockTrips.push(newTrip);
+    saveToStorage(STORAGE_KEYS.TRIPS, mockTrips);
     return { success: true, data: newTrip, message: 'Trip created' };
   },
 
@@ -337,6 +340,7 @@ export const tripsAPI = {
       throw error;
     }
     Object.assign(trip, tripData);
+    saveToStorage(STORAGE_KEYS.TRIPS, mockTrips);
     return { success: true, data: trip, message: 'Trip updated' };
   },
 
@@ -349,6 +353,7 @@ export const tripsAPI = {
       throw error;
     }
     mockTrips.splice(index, 1);
+    saveToStorage(STORAGE_KEYS.TRIPS, mockTrips);
     return { success: true, message: 'Trip deleted' };
   },
 
@@ -362,6 +367,7 @@ export const tripsAPI = {
     }
     trip.status = 'in-progress';
     trip.startTime = new Date().toISOString();
+    saveToStorage(STORAGE_KEYS.TRIPS, mockTrips);
     return { success: true, data: trip, message: 'Trip started' };
   },
 
@@ -375,6 +381,7 @@ export const tripsAPI = {
     }
     trip.status = 'completed';
     trip.endTime = new Date().toISOString();
+    saveToStorage(STORAGE_KEYS.TRIPS, mockTrips);
     return { success: true, data: trip, message: 'Trip completed' };
   },
 
@@ -387,6 +394,7 @@ export const tripsAPI = {
       throw error;
     }
     trip.status = 'cancelled';
+    saveToStorage(STORAGE_KEYS.TRIPS, mockTrips);
     return { success: true, data: trip, message: 'Trip cancelled' };
   },
 
@@ -513,6 +521,7 @@ export const fuelAPI = {
     await simulateDelay(API_DELAY);
     const newF = { id: Date.now(), ...fuelData };
     mockFuel.push(newF);
+    saveToStorage(STORAGE_KEYS.FUEL, mockFuel);
     return { success: true, data: newF, message: 'Fuel record added' };
   },
 
@@ -525,6 +534,7 @@ export const fuelAPI = {
       throw error;
     }
     Object.assign(f, fuelData);
+    saveToStorage(STORAGE_KEYS.FUEL, mockFuel);
     return { success: true, data: f, message: 'Fuel record updated' };
   },
 
@@ -537,6 +547,7 @@ export const fuelAPI = {
       throw error;
     }
     mockFuel.splice(index, 1);
+    saveToStorage(STORAGE_KEYS.FUEL, mockFuel);
     return { success: true, message: 'Fuel record deleted' };
   },
 
@@ -593,6 +604,7 @@ export const expensesAPI = {
     await simulateDelay(API_DELAY);
     const newE = { id: Date.now(), ...expenseData };
     mockExpenses.push(newE);
+    saveToStorage(STORAGE_KEYS.EXPENSES, mockExpenses);
     return { success: true, data: newE, message: 'Expense added' };
   },
 
@@ -605,6 +617,7 @@ export const expensesAPI = {
       throw error;
     }
     Object.assign(e, expenseData);
+    saveToStorage(STORAGE_KEYS.EXPENSES, mockExpenses);
     return { success: true, data: e, message: 'Expense updated' };
   },
 
@@ -617,6 +630,7 @@ export const expensesAPI = {
       throw error;
     }
     mockExpenses.splice(index, 1);
+    saveToStorage(STORAGE_KEYS.EXPENSES, mockExpenses);
     return { success: true, message: 'Expense deleted' };
   },
 };
