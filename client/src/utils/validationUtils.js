@@ -4,12 +4,14 @@
  */
 
 /**
- * Check if driver has valid license for vehicle type
+ * Check if driver has valid license for vehicle type AND during trip period
  * @param {Object} driver - Driver object with license info
  * @param {Object} vehicle - Vehicle object with type info
+ * @param {string} tripStartDate - Trip start date (ISO format)
+ * @param {string} tripEndDate - Trip end date (ISO format, optional)
  * @returns {Object} { isValid: boolean, message: string }
  */
-export const validateDriverLicense = (driver, vehicle) => {
+export const validateDriverLicense = (driver, vehicle, tripStartDate = null, tripEndDate = null) => {
   if (!driver || !vehicle) {
     return { isValid: false, message: 'Driver or vehicle data missing' };
   }
@@ -19,11 +21,12 @@ export const validateDriverLicense = (driver, vehicle) => {
     return { isValid: false, message: `${driver.name} does not have a valid license` };
   }
 
-  // Check if license is expired
+  // Check if license is expired or will expire during trip
   const expiryDate = new Date(driver.licenseExpiry);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Check if license is already expired
   if (expiryDate < today) {
     const formattedDate = expiryDate.toLocaleDateString('en-IN', {
       year: 'numeric',
@@ -34,6 +37,58 @@ export const validateDriverLicense = (driver, vehicle) => {
       isValid: false,
       message: `${driver.name}'s license expired on ${formattedDate}. Cannot assign ${vehicle.type}.`,
     };
+  }
+
+  // Check if license will expire during the trip period
+  if (tripStartDate) {
+    const tripStart = new Date(tripStartDate);
+    tripStart.setHours(0, 0, 0, 0);
+
+    // Set expiry date to end of day for comparison
+    const expiryEndOfDay = new Date(expiryDate);
+    expiryEndOfDay.setHours(23, 59, 59, 999);
+
+    // If trip starts after license expires
+    if (tripStart > expiryDate) {
+      const formattedExpiry = expiryDate.toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+      const formattedStart = tripStart.toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+      return {
+        isValid: false,
+        message: `${driver.name}'s license expires on ${formattedExpiry}, before trip start date (${formattedStart}). Cannot create trip.`,
+      };
+    }
+
+    // If trip has end date, check if license expires during trip
+    if (tripEndDate) {
+      const tripEnd = new Date(tripEndDate);
+      tripEnd.setHours(23, 59, 59, 999);
+
+      // If license expires before trip ends
+      if (expiryDate < tripEnd) {
+        const formattedExpiry = expiryDate.toLocaleDateString('en-IN', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        });
+        const formattedEnd = tripEnd.toLocaleDateString('en-IN', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        });
+        return {
+          isValid: false,
+          message: `${driver.name}'s license will expire on ${formattedExpiry}, before trip completion (${formattedEnd}). Cannot create trip.`,
+        };
+      }
+    }
   }
 
   // Check if driver has appropriate license type for vehicle
@@ -47,7 +102,23 @@ export const validateDriverLicense = (driver, vehicle) => {
     if (vehicleType === 'truck' && driverLicenseType !== 'truck') {
       return {
         isValid: false,
-        message: `${driver.name} does not have a Truck license. Current license: ${driver.licenseType}`,
+        message: `${driver.name} does not have a Truck license. Current license type: ${driver.licenseType}. Cannot assign to ${vehicle.type}.`,
+      };
+    }
+
+    // Van requires Van or Truck license
+    if (vehicleType === 'van' && !['van', 'truck'].includes(driverLicenseType)) {
+      return {
+        isValid: false,
+        message: `${driver.name}'s license (${driver.licenseType}) is not valid for ${vehicle.type}. Van or Truck license required.`,
+      };
+    }
+
+    // Car requires any license (Car, Van, or Truck)
+    if (vehicleType === 'car' && !['car', 'van', 'truck'].includes(driverLicenseType)) {
+      return {
+        isValid: false,
+        message: `${driver.name}'s license type (${driver.licenseType}) is not valid for ${vehicle.type}.`,
       };
     }
 
@@ -60,7 +131,7 @@ export const validateDriverLicense = (driver, vehicle) => {
     }
   }
 
-  return { isValid: true, message: 'License is valid' };
+  return { isValid: true, message: 'License is valid for vehicle and trip period' };
 };
 
 /**
@@ -209,9 +280,9 @@ export const validateTripAssignment = (driver, vehicle, tripStartDate, tripEndDa
   const errors = [];
   const warnings = [];
 
-  // Check driver license
+  // Check driver license with trip date validation
   if (driver) {
-    const licenseCheck = validateDriverLicense(driver, vehicle);
+    const licenseCheck = validateDriverLicense(driver, vehicle, tripStartDate, tripEndDate);
     if (!licenseCheck.isValid) {
       errors.push(licenseCheck.message);
     }
@@ -249,9 +320,11 @@ export const validateTripAssignment = (driver, vehicle, tripStartDate, tripEndDa
  * Filters out vehicles the driver cannot operate
  * @param {Array} vehicles - List of all vehicles
  * @param {Object} driver - Driver object
+ * @param {string} tripStartDate - Trip start date (optional for license expiry checking)
+ * @param {string} tripEndDate - Trip end date (optional for license expiry checking)
  * @returns {Array} Array of available vehicles
  */
-export const getAvailableVehicles = (vehicles, driver) => {
+export const getAvailableVehicles = (vehicles, driver, tripStartDate = null, tripEndDate = null) => {
   if (!vehicles || !driver) return [];
 
   return vehicles.filter(vehicle => {
@@ -259,8 +332,8 @@ export const getAvailableVehicles = (vehicles, driver) => {
     const availabilityCheck = validateVehicleAvailability(vehicle);
     if (!availabilityCheck.isAvailable) return false;
 
-    // Check driver license compatibility
-    const licenseCheck = validateDriverLicense(driver, vehicle);
+    // Check driver license compatibility with trip date validation
+    const licenseCheck = validateDriverLicense(driver, vehicle, tripStartDate, tripEndDate);
     if (!licenseCheck.isValid) return false;
 
     return true;
@@ -272,10 +345,11 @@ export const getAvailableVehicles = (vehicles, driver) => {
  * Filters out drivers who cannot operate the vehicle
  * @param {Array} drivers - List of all drivers
  * @param {Object} vehicle - Vehicle object
- * @param {string} tripDate - Trip date
+ * @param {string} tripStartDate - Trip start date (optional for license expiry checking)
+ * @param {string} tripEndDate - Trip end date (optional for license expiry checking)
  * @returns {Array} Array of available drivers
  */
-export const getAvailableDrivers = (drivers, vehicle, tripDate = null) => {
+export const getAvailableDrivers = (drivers, vehicle, tripStartDate = null, tripEndDate = null) => {
   if (!drivers || !vehicle) return [];
 
   return drivers.filter(driver => {
@@ -283,8 +357,8 @@ export const getAvailableDrivers = (drivers, vehicle, tripDate = null) => {
     const complianceCheck = validateDriverCompliance(driver);
     if (!complianceCheck.isCompliant) return false;
 
-    // Check driver license compatibility
-    const licenseCheck = validateDriverLicense(driver, vehicle);
+    // Check driver license compatibility with trip date validation
+    const licenseCheck = validateDriverLicense(driver, vehicle, tripStartDate, tripEndDate);
     if (!licenseCheck.isValid) return false;
 
     return true;
@@ -354,12 +428,66 @@ export const checkMaintenanceNeeds = (vehicle) => {
   return { needsMaintenance: false, daysUntil: null, message: 'No urgent maintenance' };
 };
 
+/**
+ * Validate cargo capacity doesn't exceed vehicle capacity
+ * @param {Object} vehicle - Vehicle object with capacity property
+ * @param {number} cargoLoad - Cargo/trip load in kg
+ * @returns {Object} { isValid: boolean, message: string, capacityInfo: string }
+ */
+export const validateCargoCapacity = (vehicle, cargoLoad) => {
+  if (!vehicle) {
+    return { isValid: false, message: 'Vehicle data missing', capacityInfo: '' };
+  }
+
+  // Validate inputs
+  const capacity = parseFloat(vehicle.capacity) || 0;
+  const load = parseFloat(cargoLoad) || 0;
+
+  if (capacity === 0) {
+    return {
+      isValid: false,
+      message: `${vehicle.name} has no cargo capacity defined`,
+      capacityInfo: '',
+    };
+  }
+
+  if (load === 0) {
+    return {
+      isValid: true,
+      message: 'Cargo load not specified',
+      capacityInfo: `${vehicle.name} capacity: ${capacity} kg`,
+    };
+  }
+
+  // Check if cargo exceeds capacity
+  if (load > capacity) {
+    const exceeded = load - capacity;
+    const percentage = ((exceeded / capacity) * 100).toFixed(1);
+    return {
+      isValid: false,
+      message: `Cargo load (${load} kg) exceeds ${vehicle.name}'s capacity (${capacity} kg) by ${exceeded} kg (${percentage}%)`,
+      capacityInfo: `${vehicle.name} max capacity: ${capacity} kg`,
+    };
+  }
+
+  // Calculate available space
+  const available = capacity - load;
+  const utilizationPercent = ((load / capacity) * 100).toFixed(1);
+
+  return {
+    isValid: true,
+    message: `Cargo load within capacity`,
+    capacityInfo: `${vehicle.name}: ${load}/${capacity} kg (${utilizationPercent}% utilized, ${available} kg available)`,
+  };
+};
+
 export default {
   validateDriverLicense,
   validateVehicleAvailability,
   validateMaintenanceSchedule,
   validateDriverCompliance,
   validateTripAssignment,
+  validateCargoCapacity,
   getAvailableVehicles,
   getAvailableDrivers,
   getLicenseExpiryStatus,
