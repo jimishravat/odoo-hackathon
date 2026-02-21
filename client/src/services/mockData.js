@@ -6,9 +6,46 @@
  * - Initial data loaded from JSON file
  * - Changes persist across page refreshes and browser restarts
  * - Can be reset to initial state anytime
+ * - Schema migrations applied automatically for new fields
  */
 
 import { loadFromStorage, STORAGE_KEYS } from '../utils/storageManager';
+
+/**
+ * Migrate stored vehicles to include new fields
+ * Handles schema updates gracefully without losing data
+ */
+const migrateVehicles = (vehicles) => {
+  return vehicles.map(vehicle => {
+    // Add maintenanceSchedule if missing
+    if (!vehicle.maintenanceSchedule) {
+      vehicle.maintenanceSchedule = [];
+    }
+    return vehicle;
+  });
+};
+
+/**
+ * Migrate stored drivers to include new fields
+ * Handles schema updates gracefully without losing data
+ */
+const migrateDrivers = (drivers) => {
+  return drivers.map(driver => {
+    // Add licenseType if missing - assign based on name or default to 'Truck'
+    if (!driver.licenseType) {
+      if (driver.name === 'Rajesh Kumar') {
+        driver.licenseType = 'Truck';
+      } else if (driver.name === 'Priya Singh') {
+        driver.licenseType = 'Van';
+      } else if (driver.name === 'Amit Patel') {
+        driver.licenseType = 'Truck';
+      } else {
+        driver.licenseType = 'Truck'; // Default
+      }
+    }
+    return driver;
+  });
+};
 
 // Mock Users - RBAC Compliant Users
 // Persisted in localStorage with key: fleetflow_users
@@ -64,7 +101,7 @@ export let mockUsers = loadFromStorage(STORAGE_KEYS.USERS, [
 ]);
 
 // Mock Vehicles - Persisted in localStorage with key: fleetflow_vehicles
-export let mockVehicles = loadFromStorage(STORAGE_KEYS.VEHICLES, [
+let loadedVehicles = loadFromStorage(STORAGE_KEYS.VEHICLES, [
   {
     id: 1,
     name: 'Truck-001',
@@ -81,6 +118,16 @@ export let mockVehicles = loadFromStorage(STORAGE_KEYS.VEHICLES, [
     owner: 'John Doe',
     purchaseDate: '2022-05-15',
     insuranceExpiry: '2025-05-15',
+    maintenanceSchedule: [
+      {
+        id: 1,
+        type: 'Regular Service',
+        scheduledDate: '2026-03-15',
+        estimatedEndDate: '2026-03-17',
+        status: 'scheduled',
+        description: 'Oil change, filter replacement, general inspection'
+      }
+    ]
   },
   {
     id: 2,
@@ -98,6 +145,16 @@ export let mockVehicles = loadFromStorage(STORAGE_KEYS.VEHICLES, [
     owner: 'Jane Smith',
     purchaseDate: '2023-03-20',
     insuranceExpiry: '2025-03-20',
+    maintenanceSchedule: [
+      {
+        id: 2,
+        type: 'Engine Repair',
+        scheduledDate: '2026-02-25',
+        estimatedEndDate: '2026-02-28',
+        status: 'scheduled',
+        description: 'Engine malfunction repair'
+      }
+    ]
   },
   {
     id: 3,
@@ -115,17 +172,31 @@ export let mockVehicles = loadFromStorage(STORAGE_KEYS.VEHICLES, [
     owner: 'Robert Johnson',
     purchaseDate: '2023-07-12',
     insuranceExpiry: '2025-07-12',
+    maintenanceSchedule: [
+      {
+        id: 3,
+        type: 'Major Service',
+        scheduledDate: '2026-02-15',
+        estimatedEndDate: '2026-02-22',
+        status: 'ongoing',
+        description: 'Complete vehicle maintenance and inspection'
+      }
+    ]
   },
 ]);
 
+// Apply migrations to handle schema updates
+export let mockVehicles = migrateVehicles(loadedVehicles);
+
 // Mock Drivers - Persisted in localStorage with key: fleetflow_drivers
-export let mockDrivers = loadFromStorage(STORAGE_KEYS.DRIVERS, [
+let loadedDrivers = loadFromStorage(STORAGE_KEYS.DRIVERS, [
   {
     id: 1,
     name: 'Rajesh Kumar',
     email: 'rajesh@fleetflow.com',
     phone: '9876543220',
     licenseNumber: 'DL-0020150091234',
+    licenseType: 'Truck',
     licenseExpiry: '2026-05-20',
     status: 'active',
     assignedVehicle: 1,
@@ -144,6 +215,7 @@ export let mockDrivers = loadFromStorage(STORAGE_KEYS.DRIVERS, [
     email: 'priya@fleetflow.com',
     phone: '9876543221',
     licenseNumber: 'DL-0020160091235',
+    licenseType: 'Van',
     licenseExpiry: '2025-08-10',
     status: 'active',
     assignedVehicle: 2,
@@ -162,6 +234,7 @@ export let mockDrivers = loadFromStorage(STORAGE_KEYS.DRIVERS, [
     email: 'amit@fleetflow.com',
     phone: '9876543222',
     licenseNumber: 'DL-0020170091236',
+    licenseType: 'Truck',
     licenseExpiry: '2027-02-14',
     status: 'on-leave',
     assignedVehicle: null,
@@ -175,6 +248,9 @@ export let mockDrivers = loadFromStorage(STORAGE_KEYS.DRIVERS, [
     dateOfBirth: '1988-11-05',
   },
 ]);
+
+// Apply migrations to handle schema updates
+export let mockDrivers = migrateDrivers(loadedDrivers);
 
 // Mock Trips - Persisted in localStorage with key: fleetflow_trips
 export let mockTrips = loadFromStorage(STORAGE_KEYS.TRIPS, [
@@ -193,6 +269,10 @@ export let mockTrips = loadFromStorage(STORAGE_KEYS.TRIPS, [
     fuel: 45.5,
     rating: 4.8,
     notes: 'Delivery completed on time',
+    fuelLogged: true,
+    fuelRecordId: 1,
+    expenseIds: [1],
+    actualOperationalCost: 4322.5,
   },
   {
     id: 2,
@@ -209,6 +289,10 @@ export let mockTrips = loadFromStorage(STORAGE_KEYS.TRIPS, [
     fuel: 52.0,
     rating: null,
     notes: 'In transit, ETA 06:00 AM',
+    fuelLogged: false,
+    fuelRecordId: null,
+    expenseIds: [],
+    actualOperationalCost: 0,
   },
   {
     id: 3,
@@ -225,6 +309,10 @@ export let mockTrips = loadFromStorage(STORAGE_KEYS.TRIPS, [
     fuel: 0,
     rating: null,
     notes: 'Scheduled for tomorrow',
+    fuelLogged: false,
+    fuelRecordId: null,
+    expenseIds: [],
+    actualOperationalCost: 0,
   },
 ]);
 
@@ -270,6 +358,7 @@ export let mockFuel = loadFromStorage(STORAGE_KEYS.FUEL, [
   {
     id: 1,
     vehicle: 1,
+    tripId: 1,
     date: '2024-02-20',
     quantity: 45.5,
     price: 95,
@@ -281,6 +370,7 @@ export let mockFuel = loadFromStorage(STORAGE_KEYS.FUEL, [
   {
     id: 2,
     vehicle: 2,
+    tripId: 2,
     date: '2024-02-20',
     quantity: 52.0,
     price: 105,
@@ -292,6 +382,7 @@ export let mockFuel = loadFromStorage(STORAGE_KEYS.FUEL, [
   {
     id: 3,
     vehicle: 1,
+    tripId: null,
     date: '2024-02-19',
     quantity: 48.0,
     price: 95,
@@ -311,6 +402,7 @@ export let mockExpenses = loadFromStorage(STORAGE_KEYS.EXPENSES, [
     category: 'Fuel',
     amount: 4322.5,
     vehicle: 1,
+    tripId: 1,
     description: 'Diesel fuel refill - 45.5L at Mumbai Fuel Station',
     receipt: 'FUEL-001',
     status: 'approved',
@@ -325,6 +417,7 @@ export let mockExpenses = loadFromStorage(STORAGE_KEYS.EXPENSES, [
     category: 'Fuel',
     amount: 5460,
     vehicle: 2,
+    tripId: 2,
     description: 'Petrol fuel refill - 52.0L at Pune Fuel Station',
     receipt: 'FUEL-002',
     status: 'approved',
@@ -339,6 +432,7 @@ export let mockExpenses = loadFromStorage(STORAGE_KEYS.EXPENSES, [
     category: 'Fuel',
     amount: 4560,
     vehicle: 1,
+    tripId: null,
     description: 'Diesel fuel refill - 48.0L at Mumbai Fuel Station',
     receipt: 'FUEL-003',
     status: 'approved',

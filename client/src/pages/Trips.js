@@ -48,10 +48,12 @@ import {
 import MainLayout from '../components/MainLayout';
 import TripFormModal from '../components/TripFormModal';
 import TripViewModal from '../components/TripViewModal';
+import TripExpenseLoggerModal from '../components/TripExpenseLoggerModal';
 import { tripsAPI } from '../services/api';
-import { mockVehicles, mockDrivers } from '../services/mockData';
+import { mockVehicles, mockDrivers, mockFuel, mockExpenses } from '../services/mockData';
 import { useApp } from '../hooks/useApp';
 import { usePermission } from '../hooks/usePermission';
+import { calculateTripOperationalCost, calculateCostPerKm, getCostEfficiencyStatus, formatCurrency } from '../utils/tripCostCalculator';
 
 const Trips = () => {
   // State management
@@ -60,6 +62,7 @@ const Trips = () => {
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [expenseLoggerOpen, setExpenseLoggerOpen] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [editingTrip, setEditingTrip] = useState(null);
 
@@ -69,6 +72,10 @@ const Trips = () => {
   const [filterVehicle, setFilterVehicle] = useState('');
   const [filterDriver, setFilterDriver] = useState('');
   const [groupBy, setGroupBy] = useState('none');
+  const [sortBy, setSortBy] = useState('none');
+  const [costRangeMin, setCostRangeMin] = useState('');
+  const [costRangeMax, setCostRangeMax] = useState('');
+  const [efficiencyFilter, setEfficiencyFilter] = useState('all');
 
   // Pagination state
   const [page, setPage] = useState(0);
@@ -152,7 +159,7 @@ const Trips = () => {
 
   // Filter and search logic
   const getFilteredRecords = () => {
-    return trips.filter(trip => {
+    let filtered = trips.filter(trip => {
       const matchesSearch =
         trip.tripNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         trip.startLocation.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -162,8 +169,57 @@ const Trips = () => {
       const matchesVehicle = !filterVehicle || trip.vehicle === parseInt(filterVehicle);
       const matchesDriver = !filterDriver || trip.driver === parseInt(filterDriver);
 
-      return matchesSearch && matchesStatus && matchesVehicle && matchesDriver;
+      // Cost range filtering
+      let matchesCostRange = true;
+      if ((costRangeMin !== '' || costRangeMax !== '') && trip.status === 'completed' && trip.fuelLogged) {
+        const cost = trip.actualOperationalCost || 0;
+        if (costRangeMin !== '' && cost < parseInt(costRangeMin)) matchesCostRange = false;
+        if (costRangeMax !== '' && cost > parseInt(costRangeMax)) matchesCostRange = false;
+      } else if (costRangeMin !== '' || costRangeMax !== '') {
+        matchesCostRange = false; // No cost data for non-completed or non-logged trips
+      }
+
+      // Efficiency filtering
+      let matchesEfficiency = true;
+      if (efficiencyFilter !== 'all' && trip.status === 'completed' && trip.fuelLogged && trip.distance > 0) {
+        const costPerKm = calculateCostPerKm(trip.actualOperationalCost || 0, trip.distance);
+        const efficiencyStatus = getCostEfficiencyStatus(costPerKm).status;
+        if (efficiencyFilter !== efficiencyStatus) matchesEfficiency = false;
+      } else if (efficiencyFilter !== 'all') {
+        matchesEfficiency = false;
+      }
+
+      return matchesSearch && matchesStatus && matchesVehicle && matchesDriver && matchesCostRange && matchesEfficiency;
     });
+
+    // Sorting logic
+    if (sortBy === 'cost-asc') {
+      filtered = filtered.sort((a, b) => {
+        const costA = a.actualOperationalCost || 0;
+        const costB = b.actualOperationalCost || 0;
+        return costA - costB;
+      });
+    } else if (sortBy === 'cost-desc') {
+      filtered = filtered.sort((a, b) => {
+        const costA = a.actualOperationalCost || 0;
+        const costB = b.actualOperationalCost || 0;
+        return costB - costA;
+      });
+    } else if (sortBy === 'efficiency-asc') {
+      filtered = filtered.sort((a, b) => {
+        const costPerKmA = a.distance > 0 ? calculateCostPerKm(a.actualOperationalCost || 0, a.distance) : Infinity;
+        const costPerKmB = b.distance > 0 ? calculateCostPerKm(b.actualOperationalCost || 0, b.distance) : Infinity;
+        return costPerKmA - costPerKmB;
+      });
+    } else if (sortBy === 'efficiency-desc') {
+      filtered = filtered.sort((a, b) => {
+        const costPerKmA = a.distance > 0 ? calculateCostPerKm(a.actualOperationalCost || 0, a.distance) : -Infinity;
+        const costPerKmB = b.distance > 0 ? calculateCostPerKm(b.actualOperationalCost || 0, b.distance) : -Infinity;
+        return costPerKmB - costPerKmA;
+      });
+    }
+
+    return filtered;
   };
 
   // Grouping logic
@@ -268,6 +324,106 @@ const Trips = () => {
     }
   };
 
+  // Handle expense logging for completed trip
+  const handleOpenExpenseLogger = (trip) => {
+    if (trip.status !== 'completed') {
+      showNotification('Expenses can only be logged for completed trips', 'warning');
+      return;
+    }
+    setSelectedTrip(trip);
+    setExpenseLoggerOpen(true);
+  };
+
+  const handleExpenseLoggerSubmit = async (expenseData) => {
+    try {
+      setLoading(true);
+
+      // Generate new IDs
+      const newFuelId = Math.max(...mockFuel.map(f => f.id), 0) + 1;
+      const newExpenseId = Math.max(...mockExpenses.map(e => e.id), 0) + 1;
+
+      // Create fuel record
+      const fuelRecord = {
+        id: newFuelId,
+        vehicle: expenseData.vehicle,
+        tripId: expenseData.tripId,
+        date: new Date().toISOString().split('T')[0],
+        quantity: expenseData.fuel.quantity,
+        price: expenseData.fuel.pricePerLiter,
+        totalCost: expenseData.fuel.totalCost,
+        fuelType: expenseData.fuel.fuelType,
+        mileage: 0,
+        location: expenseData.fuel.location,
+      };
+
+      // Add fuel record to mock data
+      mockFuel.push(fuelRecord);
+
+      // Create expense record from fuel
+      const fuelExpenseRecord = {
+        id: newExpenseId,
+        date: new Date().toISOString().split('T')[0],
+        category: 'Fuel',
+        amount: expenseData.fuel.totalCost,
+        vehicle: expenseData.vehicle,
+        tripId: expenseData.tripId,
+        description: `Fuel logged for trip ${selectedTrip.tripNumber} - ${expenseData.fuel.quantity}L at ₹${expenseData.fuel.pricePerLiter}/L`,
+        receipt: `FUEL-${newFuelId}`,
+        status: 'approved',
+        sourceType: 'fuel',
+        sourceId: newFuelId,
+        notes: expenseData.notes,
+      };
+
+      mockExpenses.push(fuelExpenseRecord);
+
+      // Create additional expense if provided
+      let additionalExpenseIds = [newExpenseId];
+      if (expenseData.additionalExpense) {
+        const additionalExpenseId = newExpenseId + 1;
+        const additionalExpenseRecord = {
+          id: additionalExpenseId,
+          date: new Date().toISOString().split('T')[0],
+          category: expenseData.additionalExpense.category,
+          amount: expenseData.additionalExpense.amount,
+          vehicle: expenseData.vehicle,
+          tripId: expenseData.tripId,
+          description: expenseData.additionalExpense.description,
+          receipt: `EXP-${additionalExpenseId}`,
+          status: 'approved',
+          sourceType: 'other',
+          notes: expenseData.notes,
+        };
+        mockExpenses.push(additionalExpenseRecord);
+        additionalExpenseIds.push(additionalExpenseId);
+      }
+
+      // Update trip with expense logging info
+      const updatedTrip = {
+        ...selectedTrip,
+        fuelLogged: true,
+        fuelRecordId: newFuelId,
+        expenseIds: additionalExpenseIds,
+        actualOperationalCost: expenseData.totalOperationalCost,
+      };
+
+      // Update trips list
+      setTrips(trips.map(t => t.id === updatedTrip.id ? updatedTrip : t));
+
+      showNotification(
+        `Expenses logged successfully. Total operational cost: ₹${expenseData.totalOperationalCost.toLocaleString('en-IN')}`,
+        'success'
+      );
+      setExpenseLoggerOpen(false);
+      setSelectedTrip(null);
+    } catch (error) {
+      showNotification('Failed to log expenses', 'error');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Toggle group expansion
   const toggleGroupExpanded = (groupKey) => {
     setExpandedGroups(prev => ({
@@ -293,6 +449,10 @@ const Trips = () => {
     setFilterVehicle('');
     setFilterDriver('');
     setGroupBy('none');
+    setSortBy('none');
+    setCostRangeMin('');
+    setCostRangeMax('');
+    setEfficiencyFilter('all');
     setPage(0);
   };
 
@@ -476,8 +636,83 @@ const Trips = () => {
               </FormControl>
             </Grid>
 
-            {/* Clear Button */}
+            {/* Sort By */}
             <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Sort By</InputLabel>
+                <Select
+                  value={sortBy}
+                  label="Sort By"
+                  onChange={(e) => {
+                    setSortBy(e.target.value);
+                    setPage(0);
+                  }}
+                >
+                  <MenuItem value="none">None</MenuItem>
+                  <MenuItem value="cost-asc">Cost (Low to High)</MenuItem>
+                  <MenuItem value="cost-desc">Cost (High to Low)</MenuItem>
+                  <MenuItem value="efficiency-asc">Efficiency (Best to Worst)</MenuItem>
+                  <MenuItem value="efficiency-desc">Efficiency (Worst to Best)</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* Cost Range Min */}
+            <Grid item xs={12} sm={6} md={2}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Min Cost (₹)"
+                type="number"
+                value={costRangeMin}
+                onChange={(e) => {
+                  setCostRangeMin(e.target.value);
+                  setPage(0);
+                }}
+                inputProps={{ step: '100' }}
+              />
+            </Grid>
+
+            {/* Cost Range Max */}
+            <Grid item xs={12} sm={6} md={2}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Max Cost (₹)"
+                type="number"
+                value={costRangeMax}
+                onChange={(e) => {
+                  setCostRangeMax(e.target.value);
+                  setPage(0);
+                }}
+                inputProps={{ step: '100' }}
+              />
+            </Grid>
+
+            {/* Efficiency Filter */}
+            <Grid item xs={12} sm={6} md={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Efficiency</InputLabel>
+                <Select
+                  value={efficiencyFilter}
+                  label="Efficiency"
+                  onChange={(e) => {
+                    setEfficiencyFilter(e.target.value);
+                    setPage(0);
+                  }}
+                >
+                  <MenuItem value="all">All</MenuItem>
+                  <MenuItem value="excellent">Excellent ({`<`} 10₹/km)</MenuItem>
+                  <MenuItem value="good">Good (10-20₹/km)</MenuItem>
+                  <MenuItem value="normal">Normal (20-35₹/km)</MenuItem>
+                  <MenuItem value="poor">Poor (35-50₹/km)</MenuItem>
+                  <MenuItem value="critical">Critical ({`>`} 50₹/km)</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* Clear Button */}
+            <Grid item xs={12} sm={6} md={2}>
               <Button
                 fullWidth
                 variant="outlined"
@@ -498,7 +733,7 @@ const Trips = () => {
           </Grid>
 
           {/* Results Info */}
-          {(searchTerm || filterStatus || filterVehicle || filterDriver || groupBy !== 'none') && (
+          {(searchTerm || filterStatus || filterVehicle || filterDriver || groupBy !== 'none' || sortBy !== 'none' || costRangeMin !== '' || costRangeMax !== '' || efficiencyFilter !== 'all') && (
             <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #e0e0e0' }}>
               <Typography variant="body2" color="textSecondary">
                 Showing <strong>{getFilteredRecords().length}</strong> trip
@@ -571,13 +806,27 @@ const Trips = () => {
                               fontWeight: 600, 
                               minWidth: 120,
                               position: 'sticky',
-                              right: 130,
+                              right: 280,
                               backgroundColor: '#F5F5F5',
                               zIndex: 3,
                               borderLeft: '2px solid #E0E0E0'
                             }}
                           >
                             Status
+                          </TableCell>
+                          <TableCell 
+                            sx={{ 
+                              fontWeight: 600, 
+                              minWidth: 140,
+                              textAlign: 'center',
+                              position: 'sticky',
+                              right: 150,
+                              backgroundColor: '#F5F5F5',
+                              zIndex: 3,
+                              borderLeft: '2px solid #E0E0E0'
+                            }}
+                          >
+                            Op. Cost / Efficiency
                           </TableCell>
                           <TableCell 
                             sx={{ 
@@ -656,7 +905,7 @@ const Trips = () => {
                               sx={{ 
                                 minWidth: 120,
                                 position: 'sticky',
-                                right: 130,
+                                right: 280,
                                 backgroundColor: '#FFF',
                                 zIndex: 2,
                                 borderLeft: '2px solid #E0E0E0'
@@ -671,6 +920,42 @@ const Trips = () => {
                                   fontWeight: 600,
                                 }}
                               />
+                            </TableCell>
+                            <TableCell 
+                              sx={{ 
+                                minWidth: 140, 
+                                textAlign: 'center',
+                                position: 'sticky',
+                                right: 150,
+                                backgroundColor: '#FFF',
+                                zIndex: 2,
+                                borderLeft: '2px solid #E0E0E0'
+                              }}
+                            >
+                              {trip.status === 'completed' && trip.fuelLogged ? (
+                                <Box>
+                                  <Typography variant="caption" display="block" sx={{ mb: 0.5, fontWeight: 600 }}>
+                                    {formatCurrency(trip.actualOperationalCost || 0)}
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                                    <Chip
+                                      label={`${(calculateCostPerKm(trip.actualOperationalCost || 0, trip.distance)).toFixed(2)}₹/km`}
+                                      size="small"
+                                      sx={{
+                                        backgroundColor: getCostEfficiencyStatus(calculateCostPerKm(trip.actualOperationalCost || 0, trip.distance)).color,
+                                        color: '#FFF',
+                                        fontWeight: 600,
+                                        fontSize: '0.7rem',
+                                        height: '20px'
+                                      }}
+                                    />
+                                  </Box>
+                                </Box>
+                              ) : (
+                                <Typography variant="caption" color="textSecondary">
+                                  -
+                                </Typography>
+                              )}
                             </TableCell>
                             <TableCell 
                               sx={{ 
@@ -710,6 +995,34 @@ const Trips = () => {
                                 >
                                   <DeleteIcon fontSize="small" />
                                 </IconButton>
+                              )}
+                              {trip.status === 'completed' && !trip.fuelLogged && (
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{
+                                    color: '#4CAF50',
+                                    borderColor: '#4CAF50',
+                                    fontSize: '0.7rem',
+                                    textTransform: 'none',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(76, 175, 80, 0.04)',
+                                      borderColor: '#388E3C',
+                                    },
+                                  }}
+                                  onClick={() => handleOpenExpenseLogger(trip)}
+                                >
+                                  Log Fuel
+                                </Button>
+                              )}
+                              {trip.status === 'completed' && trip.fuelLogged && (
+                                <Chip
+                                  label="✓ Logged"
+                                  size="small"
+                                  color="success"
+                                  variant="outlined"
+                                  sx={{ height: '24px' }}
+                                />
                               )}
                             </TableCell>
                           </TableRow>
@@ -766,6 +1079,12 @@ const Trips = () => {
         trip={selectedTrip}
         vehicles={mockVehicles}
         drivers={mockDrivers}
+        onLogExpenses={() => {
+          if (selectedTrip?.status === 'completed' && !selectedTrip?.fuelLogged) {
+            setViewModalOpen(false);
+            handleOpenExpenseLogger(selectedTrip);
+          }
+        }}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -788,6 +1107,19 @@ const Trips = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Trip Expense Logger Modal */}
+      <TripExpenseLoggerModal
+        open={expenseLoggerOpen}
+        onClose={() => {
+          setExpenseLoggerOpen(false);
+          setSelectedTrip(null);
+        }}
+        onSubmit={handleExpenseLoggerSubmit}
+        trip={selectedTrip}
+        vehicle={selectedTrip ? mockVehicles.find(v => v.id === selectedTrip.vehicle) : null}
+        loading={loading}
+      />
     </MainLayout>
   );
 };

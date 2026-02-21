@@ -16,6 +16,7 @@ import {
   Chip,
   Paper,
 } from '@mui/material';
+import { getCostEfficiencyStatus, calculateCostPerKm, getTripCostMetrics, formatCurrency } from '../utils/tripCostCalculator';
 
 const TripViewModal = ({
   open,
@@ -23,6 +24,7 @@ const TripViewModal = ({
   trip,
   vehicles = [],
   drivers = [],
+  onLogExpenses = null,
 }) => {
   if (!trip) return null;
 
@@ -219,6 +221,100 @@ const TripViewModal = ({
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                 {trip.rating} / 5.0 ⭐
               </Typography>
+            </Paper>
+          )}
+
+          {/* Fuel & Expense Logging Status */}
+          {trip.status === 'completed' && (
+            <Paper sx={{ p: 2, backgroundColor: trip.fuelLogged ? '#E8F5E9' : '#FFF3E0', borderLeft: `3px solid ${trip.fuelLogged ? '#4CAF50' : '#FF9800'}` }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                  Fuel & Expense Logging
+                </Typography>
+                <Chip
+                  label={trip.fuelLogged ? '✓ Logged' : 'Pending'}
+                  color={trip.fuelLogged ? 'success' : 'warning'}
+                  variant="outlined"
+                  size="small"
+                />
+              </Box>
+              {trip.fuelLogged && trip.actualOperationalCost > 0 && (
+                <Box>
+                  {/* Operational Cost */}
+                  <Box sx={{ mb: 2, pb: 2, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+                    <Typography variant="caption" color="textSecondary">
+                      Total Operational Cost
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#4CAF50', mb: 1 }}>
+                      {formatCurrency(trip.actualOperationalCost)}
+                    </Typography>
+                  </Box>
+
+                  {/* Cost Efficiency Metrics */}
+                  {trip.distance > 0 && (
+                    <Box sx={{ mb: 2, pb: 2, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+                      <Typography variant="caption" color="textSecondary" display="block" sx={{ mb: 1 }}>
+                        Cost Efficiency
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {(calculateCostPerKm(trip.actualOperationalCost, trip.distance)).toFixed(2)}₹/km
+                        </Typography>
+                        <Chip
+                          label={getCostEfficiencyStatus(calculateCostPerKm(trip.actualOperationalCost, trip.distance)).label}
+                          size="small"
+                          sx={{
+                            backgroundColor: getCostEfficiencyStatus(calculateCostPerKm(trip.actualOperationalCost, trip.distance)).color,
+                            color: '#FFF',
+                            fontWeight: 600,
+                            fontSize: '0.75rem'
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  )}
+
+                  {/* Load Efficiency */}
+                  {trip.load > 0 && (
+                    <Box sx={{ mb: 2, pb: 2, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+                      <Typography variant="caption" color="textSecondary" display="block" sx={{ mb: 1 }}>
+                        Cost per Unit Load
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {(trip.actualOperationalCost / trip.load).toFixed(2)}₹/kg
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Profitability Status */}
+                  <Box>
+                    <Typography variant="caption" color="textSecondary" display="block" sx={{ mb: 1 }}>
+                      Trip Status
+                    </Typography>
+                    <Chip
+                      label="✓ Cost Tracked"
+                      color="success"
+                      variant="outlined"
+                      size="small"
+                    />
+                  </Box>
+                </Box>
+              )}
+              {!trip.fuelLogged && onLogExpenses && (
+                <Box sx={{ mt: 2 }}>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    sx={{
+                      backgroundColor: '#FF9800',
+                      '&:hover': { backgroundColor: '#F57C00' },
+                    }}
+                    onClick={onLogExpenses}
+                  >
+                    Log Fuel & Expenses
+                  </Button>
+                </Box>
+              )}
             </Paper>
           )}
 

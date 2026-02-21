@@ -21,6 +21,7 @@ import {
   Typography,
   Alert,
 } from '@mui/material';
+import { validateTripAssignment, validateVehicleAvailability, validateDriverLicense, getLicenseExpiryStatus } from '../utils/validationUtils';
 
 const TripFormModal = ({
   open,
@@ -49,6 +50,7 @@ const TripFormModal = ({
 
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [validationAlerts, setValidationAlerts] = useState([]);
 
   // Trip statuses
   const tripStatuses = ['scheduled', 'in-progress', 'completed', 'cancelled'];
@@ -110,7 +112,18 @@ const TripFormModal = ({
         if (!value) {
           newErrors[field] = 'Vehicle is required';
         } else {
-          delete newErrors[field];
+          // Check vehicle availability
+          const vehicle = vehicles.find(v => v.id === parseInt(value));
+          if (vehicle) {
+            const availCheck = validateVehicleAvailability(vehicle);
+            if (!availCheck.isAvailable) {
+              newErrors[field] = availCheck.reason;
+            } else {
+              delete newErrors[field];
+            }
+          } else {
+            delete newErrors[field];
+          }
         }
         break;
 
@@ -118,7 +131,19 @@ const TripFormModal = ({
         if (!value) {
           newErrors[field] = 'Driver is required';
         } else {
-          delete newErrors[field];
+          // Check driver-vehicle compatibility
+          const driver = drivers.find(d => d.id === parseInt(value));
+          const vehicle = vehicles.find(v => v.id === parseInt(formData.vehicle));
+          if (driver && vehicle) {
+            const licenseCheck = validateDriverLicense(driver, vehicle);
+            if (!licenseCheck.isValid) {
+              newErrors[field] = licenseCheck.message;
+            } else {
+              delete newErrors[field];
+            }
+          } else {
+            delete newErrors[field];
+          }
         }
         break;
 
@@ -216,7 +241,27 @@ const TripFormModal = ({
       validateField(field, formData[field]);
     });
 
-    if (isFormValid()) {
+    // Comprehensive validation for trip assignment
+    const driver = drivers.find(d => d.id === parseInt(formData.driver));
+    const vehicle = vehicles.find(v => v.id === parseInt(formData.vehicle));
+
+    const alerts = [];
+
+    if (driver && vehicle && formData.startTime) {
+      const assignmentValidation = validateTripAssignment(driver, vehicle, formData.startTime, formData.endTime);
+      
+      if (!assignmentValidation.isValid) {
+        alerts.push(...assignmentValidation.errors);
+      }
+      
+      if (assignmentValidation.warnings && assignmentValidation.warnings.length > 0) {
+        alerts.push(...assignmentValidation.warnings.map(w => ({ type: 'warning', message: w })));
+      }
+    }
+
+    setValidationAlerts(alerts);
+
+    if (isFormValid() && alerts.filter(a => !a.type || a.type !== 'warning').length === 0) {
       const submitData = {
         ...formData,
         distance: parseFloat(formData.distance),
@@ -255,6 +300,19 @@ const TripFormModal = ({
 
         {!loading && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* Validation Alerts */}
+            {validationAlerts.length > 0 && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {validationAlerts.map((alert, idx) => (
+                    <Typography key={idx} variant="caption" sx={{ display: 'block' }}>
+                      • {typeof alert === 'string' ? alert : alert.message}
+                    </Typography>
+                  ))}
+                </Box>
+              </Alert>
+            )}
+
             {/* Trip Number (read-only for edit) */}
             <TextField
               fullWidth
@@ -310,6 +368,29 @@ const TripFormModal = ({
                 </Typography>
               )}
             </FormControl>
+
+            {/* Vehicle & Driver Status Info */}
+            {formData.vehicle && formData.driver && (
+              <Box sx={{ p: 1.5, backgroundColor: '#F5F5F5', borderRadius: 1, borderLeft: '3px solid #2196F3' }}>
+                {vehicles.find(v => v.id === parseInt(formData.vehicle)) && (
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="caption" color="textSecondary">
+                      <strong>Vehicle Status:</strong> {vehicles.find(v => v.id === parseInt(formData.vehicle))?.status}
+                    </Typography>
+                  </Box>
+                )}
+                {drivers.find(d => d.id === parseInt(formData.driver)) && (
+                  <Box>
+                    <Typography variant="caption" color="textSecondary">
+                      <strong>Driver License:</strong> {drivers.find(d => d.id === parseInt(formData.driver))?.licenseType || 'Not specified'}
+                    </Typography>
+                    <Typography variant="caption" color="textSecondary" display="block">
+                      <strong>License Expiry:</strong> {drivers.find(d => d.id === parseInt(formData.driver))?.licenseExpiry ? new Date(drivers.find(d => d.id === parseInt(formData.driver))?.licenseExpiry).toLocaleDateString('en-IN') : 'N/A'}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
 
             {/* Start Location */}
             <TextField
